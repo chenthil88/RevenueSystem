@@ -1,0 +1,24 @@
+Configuration Tables
+    Functionality Config
+    System Config
+    Application Config
+    Contract Modification
+    Calendar
+    Currency 
+    Journal Accounting Setup
+    PerformanceObligation
+    ArrangementGrouping
+    StandaloneSellPrice
+    Hold
+    Approval
+
+ArrangementHead
+ArrangementOrderDetails
+ArrangementPobDetails
+ArrangementBillingDetails
+RevenueJournalEntries
+AllocationJournalEntries
+ArrangementHeadDetails
+CaClJournalEntries
+LongTermShortTermEntries
+

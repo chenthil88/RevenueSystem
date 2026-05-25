@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: rev-rec-service
+
+  datasource:
+    tidb:
+      url: ${TIDB_JDBC_URL:jdbc:mysql://127.0.0.1:4000/revrec?useSSL=true&characterEncoding=utf8}
+      username: ${TIDB_USERNAME:}
+      password: ${TIDB_PASSWORD:}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        pool-name: tidb-pool
+        maximum-pool-size: ${TIDB_POOL_MAX:32}
+        minimum-idle: ${TIDB_POOL_MIN:4}
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+  data:
+    # Cluster: set REDIS_ADDRESS (non-blank) → RedisFromAddressConfiguration. Standalone: REDIS_HOST / REDIS_PORT.
+    # Conventions: file:///Users/chenthilbalasubramaniam/Documents/GitHub/revanu/docs/REDIS_CONFIGURATION.md
+    redis:
+      # Standalone (default). When REDIS_ADDRESS is set (non-blank), RedisFromAddressConfiguration builds a cluster client instead.
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      username: ${REDIS_USERNAME:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:2s}
+      timeout: ${REDIS_COMMAND_TIMEOUT:2s}
+
+# Camunda 8 (Zeebe) — enable when you add the Camunda Spring Boot starter dependency
+# zeebe:
+#   client:
+#     security:
+#       plaintext: ${ZEEBE_PLAINTEXT:false}
+#     gateway:
+#       grpc:
+#         address: ${ZEEBE_ADDRESS:127.0.0.1:26500}
+
+# Batch temp store (DuckDB) — see com.revrec.engine.config.BatchDuckDbConfig
+revrec:
+  batch:
+    duckdb:
+      jdbc-url: ${DUCKDB_JDBC_URL:jdbc:duckdb::memory:revrec_batch}
+  nosql:
+    # Redis JSON cache for TiDB rows (see NoSqlRecordServer / findByIdCached)
+    enabled: ${REVREC_NOSQL_ENABLED:true}
+    row-ttl-seconds: ${REVREC_NOSQL_ROW_TTL_SECONDS:900}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: ${MANAGEMENT_HEALTH_REDIS_ENABLED:true}
+
+logging:
+  level:
+    root: INFO
+    com.revrec.engine: INFO

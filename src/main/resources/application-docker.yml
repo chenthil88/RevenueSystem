@@ -1,0 +1,11 @@
+# Profile: docker — relaxed health checks; TiDB may come up after the app
+spring:
+  datasource:
+    tidb:
+      hikari:
+        initialization-fail-timeout: -1
+
+management:
+  health:
+    db:
+      enabled: false

@@ -1,0 +1,20 @@
+Will not be adopted for enterprise customers.
+Reason: 
+    System configuration is not capable of that.
+    Revenue Contract Grouping logic.
+    Performance Obligation for Distinct and Non-Distinct setup.
+    Standalone Selling Price Setup.
+    Accounting entries will not balance at the line level.
+    Scaling for high volume is not possible.
+    Currency rounding precision.
+    No independent, RevRec-specific scheduled jobs.
+    Not capable of writing custom code and jobs to support customer-specific logic.
+    If one line fails, the entire job fails.
+    No inbound staging area where users can correct failed data and re-collect it after fixing.
+
+Functionality Not Available:
+    Intercompany is not supported.
+    Multi-currency allocation is not supported.
+    LongTerm and ShortTerm accounting. 
+    Upload the ManualJournal to correct the month end value.
+    CA/CL accounting.
