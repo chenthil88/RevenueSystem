@@ -32,3 +32,4 @@ TiDB Login Details:
 - **Config:** `src/main/resources/application.yml` — use env vars `TIDB_*`, `REDIS_*`, `DUCKDB_JDBC_URL` (see `.env.example`). Prefer secrets manager over storing passwords in this file.
 - **Docker:** `Dockerfile` + `docker-compose.yml`. Default is one app instance on port 8080. For multiple nodes (up to 10), use `docker compose up --scale rev-rec=N`; remove or adjust the `ports` mapping on `rev-rec` to avoid host port clashes, and put a load balancer in front.
 - **Camunda 8:** add the official Camunda Spring Boot 3 starter when your cluster version is fixed; commented placeholders live in `application.yml`.
+## Need to improve the MD file.
