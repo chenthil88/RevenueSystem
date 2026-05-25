@@ -1,0 +1,47 @@
+# Local stack: Redis + app. TiDB is expected at TIDB_JDBC_URL (e.g. host.docker.internal for TiDB on host).
+#
+# Single instance (default):
+#   docker compose up --build
+#
+# Up to 10 app nodes (remove or adjust `ports` first to avoid host port conflicts):
+#   docker compose up --build --scale rev-rec=10
+#
+# Optional env file (not required): docker compose --env-file .env up --build
+services:
+  rev-rec:
+    build: .
+    image: rev-rec-service:local
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: "8080"
+      TIDB_JDBC_URL: ${TIDB_JDBC_URL:-jdbc:mysql://host.docker.internal:4000/revrec}
+      TIDB_USERNAME: ${TIDB_USERNAME:-}
+      TIDB_PASSWORD: ${TIDB_PASSWORD:-}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      # Optional cluster (revanu-style): uncomment and set; overrides REDIS_HOST/REDIS_PORT when non-blank
+      # REDIS_ADDRESS: "redis://redis:6379"
+      # ENABLE_REDIS_ACL: "true"
+      # REDIS_USERNAME: ""
+      # REDIS_PASSWORD: ""
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 50s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

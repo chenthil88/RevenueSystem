@@ -1,0 +1,4 @@
+# Test profile defaults (override in @TestPropertySource or Testcontainers as needed)
+revrec:
+  nosql:
+    enabled: false
