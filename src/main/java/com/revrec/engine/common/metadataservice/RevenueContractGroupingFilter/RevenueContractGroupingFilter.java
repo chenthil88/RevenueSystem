@@ -1,11 +1,12 @@
 package com.revrec.engine.domain.metadataservice.RevenueContractGroupingFilter;
 
+import com.revrec.engine.common.filter.ActiveFieldFilter;
 import java.time.LocalDateTime;
 
 /**
  * Row shape for {@link RevenueContractGroupingFilterRecord}.
  */
-public interface RevenueContractGroupingFilter {
+public interface RevenueContractGroupingFilter extends ActiveFieldFilter {
 
     Long id();
 

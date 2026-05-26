@@ -1,11 +1,12 @@
 package com.revrec.engine.domain.metadataservice.PerformanceObligationRuleFilter;
 
+import com.revrec.engine.common.filter.ActiveFieldFilter;
 import java.time.LocalDateTime;
 
 /**
  * Row shape for {@link PerformanceObligationRuleFilterRecord}.
  */
-public interface PerformanceObligationRuleFilter {
+public interface PerformanceObligationRuleFilter extends ActiveFieldFilter {
 
     Long id();
 
