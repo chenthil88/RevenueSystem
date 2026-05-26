@@ -1,8 +1,12 @@
 package com.revrec.engine.common.service.RevenueContractOrder.RevenueContractOrderDetails;
 
+import com.revrec.engine.common.filter.FieldFilter;
+import com.revrec.engine.common.filter.FilterCombination;
+import com.revrec.engine.common.filter.RecordFilterService;
 import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractOrderDetails.RevenueContractOrderDetailsRecord;
-import com.revrec.engine.integration.nosql.NoSqlRecordServer;
 import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractOrderDetails.RevenueContractOrderDetailsRecordMapper;
+import com.revrec.engine.integration.nosql.NoSqlRecordServer;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,14 +22,17 @@ public class RevenueContractOrderDetailsService {
     private final NamedParameterJdbcTemplate jdbc;
     private final RevenueContractOrderDetailsRecordMapper rowMapper;
     private final NoSqlRecordServer noSqlRecordServer;
+    private final RecordFilterService recordFilterService;
 
     public RevenueContractOrderDetailsService(
             NamedParameterJdbcTemplate jdbc,
             RevenueContractOrderDetailsRecordMapper rowMapper,
-            NoSqlRecordServer noSqlRecordServer) {
+            NoSqlRecordServer noSqlRecordServer,
+            RecordFilterService recordFilterService) {
         this.jdbc = jdbc;
         this.rowMapper = rowMapper;
         this.noSqlRecordServer = noSqlRecordServer;
+        this.recordFilterService = recordFilterService;
     }
 
     private static final String SELECT =
@@ -46,5 +53,24 @@ public class RevenueContractOrderDetailsService {
     public List<RevenueContractOrderDetailsRecord> findAll(int limit, int offset) {
         return jdbc.query(SELECT + " LIMIT :limit OFFSET :offset",
                 Map.of("limit", limit, "offset", offset), rowMapper);
+    }
+
+    /**
+     * Applies all active filter criteria (AND) to {@code revenueContractOrderRecords}.
+     *
+     * <p>Example filters:
+     * {@code customerNumber = C001} and {@code customerName LIKE Acme%}.
+     */
+    public List<RevenueContractOrderDetailsRecord> filterRecords(
+            Collection<RevenueContractOrderDetailsRecord> revenueContractOrderRecords,
+            Collection<? extends FieldFilter> filters) {
+        return recordFilterService.filter(revenueContractOrderRecords, filters);
+    }
+
+    public List<RevenueContractOrderDetailsRecord> filterRecords(
+            Collection<RevenueContractOrderDetailsRecord> revenueContractOrderRecords,
+            Collection<? extends FieldFilter> filters,
+            FilterCombination combination) {
+        return recordFilterService.filter(revenueContractOrderRecords, filters, combination);
     }
 }
