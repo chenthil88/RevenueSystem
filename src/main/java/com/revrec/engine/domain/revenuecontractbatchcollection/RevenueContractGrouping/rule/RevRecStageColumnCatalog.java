@@ -1,5 +1,6 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.RevenueContractGrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.rule;
 
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.RevenueContractGroupingConstants;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,12 +15,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * Allowed {@code RevRecStage} column names (from {@code db_script.sql}), used to validate grouping tokens.
- * Tokens in {@code GroupingFields} must match a column name (case-insensitive).
  */
 @Component
 public final class RevRecStageColumnCatalog {
-
-    private static final String COLUMN_RESOURCE = "metadata/rev-rec-stage-columns.txt";
 
     private final Map<String, String> byNormalizedKey;
     private final Set<String> columnNames;
@@ -46,10 +44,6 @@ public final class RevRecStageColumnCatalog {
         return columnNames;
     }
 
-    /**
-     * @param token field name as configured in {@code GroupingFields} (any casing)
-     * @return physical column name as defined on {@code RevRecStage}
-     */
     public String resolveColumn(String token) {
         String trimmed = Objects.requireNonNull(token, "token").trim();
         if (trimmed.isEmpty()) {
@@ -59,7 +53,7 @@ public final class RevRecStageColumnCatalog {
         if (column == null) {
             throw new IllegalArgumentException(
                     "Unknown RevRecStage column '" + trimmed + "'. Use a column from RevRecStage (see "
-                            + COLUMN_RESOURCE + ").");
+                            + RevenueContractGroupingConstants.REV_REC_STAGE_COLUMNS_RESOURCE + ").");
         }
         return column;
     }
@@ -69,12 +63,13 @@ public final class RevRecStageColumnCatalog {
     }
 
     private static String[] loadColumnsFromClasspath() {
-        var resource = new ClassPathResource(COLUMN_RESOURCE);
+        var resource = new ClassPathResource(RevenueContractGroupingConstants.REV_REC_STAGE_COLUMNS_RESOURCE);
         try (var reader = new BufferedReader(
                 new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
             return reader.lines().filter(line -> !line.isBlank()).toArray(String[]::new);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to load " + COLUMN_RESOURCE, e);
+            throw new IllegalStateException(
+                    "Failed to load " + RevenueContractGroupingConstants.REV_REC_STAGE_COLUMNS_RESOURCE, e);
         }
     }
 }

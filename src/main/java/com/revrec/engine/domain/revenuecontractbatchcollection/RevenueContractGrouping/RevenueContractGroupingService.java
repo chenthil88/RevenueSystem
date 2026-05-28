@@ -1,4 +1,4 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.RevenueContractGrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
 
 import com.revrec.engine.common.metadataservice.RevenueContractGroupingHierarchy.RevenueContractGroupingHierarchyService;
 import com.revrec.engine.common.metadataservice.RevenueContractGroupingTemplate.RevenueContractGroupingTemplateService;
@@ -8,6 +8,8 @@ import com.revrec.engine.common.service.RevenueContractReferenceDetails.RevenueC
 import com.revrec.engine.common.service.RevRecStage.RevRecStageService;
 import com.revrec.engine.common.service.RevRecStage.RevRecStageService.StageRevenueContractAssignment;
 import com.revrec.engine.domain.metadataservice.RevenueContractGroupingTemplate.RevenueContractGroupingTemplateRecord;
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.model.RevenueContractGroupingResult;
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.rule.GroupingRuleSqlBuilder;
 import com.revrec.engine.domain.service.RevenueContractGroupDetails.RevenueContractGroupDetailsRecord;
 import com.revrec.engine.domain.service.RevenueContractReferenceDetails.RevenueContractReferenceDetailsRecord;
 import com.revrec.engine.domain.service.RevRecStage.RevRecStageRecord;
@@ -25,8 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Batch orchestration: resolves grouping template/hierarchy, stamps stage group values, assigns new
  * revenue contracts per group, and persists group/reference details.
- *
- * @see RevenueContractGrouping.md
  */
 @Service
 public class RevenueContractGroupingService {
@@ -122,7 +122,7 @@ public class RevenueContractGroupingService {
 
     private static String normalizeGroupingValue(String groupValue) {
         if (groupValue == null || groupValue.isBlank()) {
-            return RevRecStageService.DEFAULT_GROUPING_VALUE;
+            return RevenueContractGroupingConstants.DEFAULT_GROUPING_VALUE;
         }
         return groupValue;
     }

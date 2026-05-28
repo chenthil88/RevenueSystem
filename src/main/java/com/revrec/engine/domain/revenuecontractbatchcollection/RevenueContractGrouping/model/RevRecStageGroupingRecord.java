@@ -1,13 +1,11 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.model;
 
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
 
-/**
- * DTO for streaming RevRecStage records for grouping processing
- */
+/** DTO for streaming {@code RevRecStage} records during grouping batch processing. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

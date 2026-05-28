@@ -1,9 +1,8 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.reference;
 
-/**
- * Thrown when revenue contract reference resolution fails
- */
+/** Thrown when revenue contract reference resolution fails. */
 public class ReferenceResolutionException extends RuntimeException {
+
     public ReferenceResolutionException(String message) {
         super(message);
     }

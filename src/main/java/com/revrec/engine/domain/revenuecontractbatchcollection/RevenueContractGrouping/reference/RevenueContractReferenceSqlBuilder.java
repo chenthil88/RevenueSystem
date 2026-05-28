@@ -1,22 +1,12 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.reference;
 
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.RevenueContractGroupingConstants;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Builds SQL queries for revenue contract reference lookups
- * Separates SQL construction logic from service orchestration
- */
 public class RevenueContractReferenceSqlBuilder {
 
-    private static final String REFERENCE_TABLE = "revenueContractReferenceDetails";
-    private static final String KEY_COL = "key";
-    private static final String VALUE_COL = "RevenueContractId";
-
-    /**
-     * Build batch lookup query using UNION for multiple ID fields
-     */
     public BatchLookupQuery buildBatchLookupQuery(
             List<String> salesOrderIds,
             List<String> invoiceIds,
@@ -27,33 +17,39 @@ public class RevenueContractReferenceSqlBuilder {
             return new BatchLookupQuery("", new HashMap<>());
         }
 
-        StringBuilder sql = new StringBuilder();
+        String table = RevenueContractGroupingConstants.REVENUE_CONTRACT_REFERENCE_TABLE;
+        String keyCol = RevenueContractGroupingConstants.REFERENCE_LOOKUP_KEY_COLUMN;
+        String valueCol = RevenueContractGroupingConstants.REFERENCE_LOOKUP_VALUE_COLUMN;
 
+        StringBuilder sql = new StringBuilder();
         if (!salesOrderIds.isEmpty()) {
             sql.append(String.format(
                     "SELECT \"salesOrderId\" as %s, \"%s\" as %s FROM \"%s\" WHERE \"salesOrderId\" IN (:salesOrderIds) ",
-                    KEY_COL, VALUE_COL, VALUE_COL, REFERENCE_TABLE));
+                    keyCol, valueCol, valueCol, table));
         }
-
         if (!invoiceIds.isEmpty()) {
-            if (sql.length() > 0) sql.append("UNION ALL ");
+            if (!sql.isEmpty()) {
+                sql.append("UNION ALL ");
+            }
             sql.append(String.format(
                     "SELECT \"invoiceId\", \"%s\" FROM \"%s\" WHERE \"invoiceId\" IN (:invoiceIds) ",
-                    VALUE_COL, REFERENCE_TABLE));
+                    valueCol, table));
         }
-
         if (!originalInvoiceIds.isEmpty()) {
-            if (sql.length() > 0) sql.append("UNION ALL ");
+            if (!sql.isEmpty()) {
+                sql.append("UNION ALL ");
+            }
             sql.append(String.format(
                     "SELECT \"originalInvoiceId\", \"%s\" FROM \"%s\" WHERE \"originalInvoiceId\" IN (:originalInvoiceIds) ",
-                    VALUE_COL, REFERENCE_TABLE));
+                    valueCol, table));
         }
-
         if (!originalSalesOrderIds.isEmpty()) {
-            if (sql.length() > 0) sql.append("UNION ALL ");
+            if (!sql.isEmpty()) {
+                sql.append("UNION ALL ");
+            }
             sql.append(String.format(
                     "SELECT \"originalSalesOrderId\", \"%s\" FROM \"%s\" WHERE \"originalSalesOrderId\" IN (:originalSalesOrderIds) ",
-                    VALUE_COL, REFERENCE_TABLE));
+                    valueCol, table));
         }
 
         Map<String, Object> params = new HashMap<>();
@@ -73,32 +69,28 @@ public class RevenueContractReferenceSqlBuilder {
         return new BatchLookupQuery(sql.toString(), params);
     }
 
-    /**
-     * Build single-record lookup query
-     */
     public String buildSingleLookupQuery() {
+        String table = RevenueContractGroupingConstants.REVENUE_CONTRACT_REFERENCE_TABLE;
+        String valueCol = RevenueContractGroupingConstants.REFERENCE_LOOKUP_VALUE_COLUMN;
         return String.format(
-                "SELECT \"%s\" FROM \"%s\" WHERE " +
-                "(\"salesOrderId\" = :salesOrderId OR " +
-                "\"invoiceId\" = :invoiceId OR " +
-                "\"invoiceId\" = :originalInvoiceId OR " +
-                "\"salesOrderId\" = :originalSalesOrderId) " +
-                "LIMIT 1",
-                VALUE_COL, REFERENCE_TABLE);
+                "SELECT \"%s\" FROM \"%s\" WHERE "
+                        + "(\"salesOrderId\" = :salesOrderId OR "
+                        + "\"invoiceId\" = :invoiceId OR "
+                        + "\"invoiceId\" = :originalInvoiceId OR "
+                        + "\"salesOrderId\" = :originalSalesOrderId) "
+                        + "LIMIT 1",
+                valueCol, table);
     }
 
-    /**
-     * Build mark-as-processed query
-     */
     public String buildMarkProcessedQuery() {
-        return "UPDATE \"RevRecStage\" SET \"processsedFlag\" = :flag WHERE \"id\" IN (:ids)";
+        return "UPDATE \"" + RevenueContractGroupingConstants.REV_REC_STAGE_TABLE
+                + "\" SET \"processsedFlag\" = :flag WHERE \"id\" IN (:ids)";
     }
 
-    /**
-     * Build mark-with-error query
-     */
     public String buildMarkErrorQuery() {
-        return "UPDATE \"RevRecStage\" SET \"processsedFlag\" = 'E', \"errorMessage\" = :errorMessage WHERE \"id\" IN (:ids)";
+        return "UPDATE \"" + RevenueContractGroupingConstants.REV_REC_STAGE_TABLE + "\" SET \"processsedFlag\" = '"
+                + RevenueContractGroupingConstants.PROCESSED_FLAG_ERROR
+                + "', \"errorMessage\" = :errorMessage WHERE \"id\" IN (:ids)";
     }
 
     private boolean allEmpty(List<?>... lists) {

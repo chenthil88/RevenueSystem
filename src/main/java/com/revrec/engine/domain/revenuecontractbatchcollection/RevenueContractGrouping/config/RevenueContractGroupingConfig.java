@@ -1,35 +1,27 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.config;
 
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.RevenueContractGroupingConstants;
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.reference.DatabaseReferenceLookupStrategy;
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.reference.RevenueContractReferenceLookupStrategy;
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.reference.RevenueContractReferenceMapper;
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.reference.RevenueContractReferenceSqlBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-/**
- * Spring configuration for revenue contract reference resolution
- * Sets up beans and wiring for the strategy pattern implementation
- */
 @Configuration
 public class RevenueContractGroupingConfig {
 
-    /**
-     * Provide SQL builder as a bean
-     */
     @Bean
     public RevenueContractReferenceSqlBuilder revenueContractReferenceSqlBuilder() {
         return new RevenueContractReferenceSqlBuilder();
     }
 
-    /**
-     * Provide mapper as a bean
-     */
     @Bean
     public RevenueContractReferenceMapper revenueContractReferenceMapper() {
         return new RevenueContractReferenceMapper();
     }
 
-    /**
-     * Provide database lookup strategy as the primary implementation
-     */
     @Bean
     public RevenueContractReferenceLookupStrategy revenueContractReferenceLookupStrategy(
             NamedParameterJdbcTemplate jdbc,
@@ -38,16 +30,11 @@ public class RevenueContractGroupingConfig {
         return new DatabaseReferenceLookupStrategy(jdbc, sqlBuilder, mapper);
     }
 
-    /**
-     * Provide batch processing config with sensible defaults
-     * Can be overridden via application.properties or constructor
-     */
     @Bean
     public BatchProcessingConfig batchProcessingConfig() {
         return new BatchProcessingConfig(
-                1000,  // batchSize
-                5000,  // fetchSize
-                4      // threadPoolSize
-        );
+                RevenueContractGroupingConstants.DEFAULT_BATCH_SIZE,
+                RevenueContractGroupingConstants.DEFAULT_FETCH_SIZE,
+                RevenueContractGroupingConstants.DEFAULT_THREAD_POOL_SIZE);
     }
 }

@@ -1,4 +1,4 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.RevenueContractGrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.rule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

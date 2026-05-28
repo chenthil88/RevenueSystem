@@ -1,15 +1,19 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.reference;
 
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.RevenueContractGroupingConstants;
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.model.RevRecStageGroupingRecord;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import java.util.*;
-import java.util.stream.Collectors;
 
-/**
- * Database-backed reference resolution strategy
- * Implements batch and single lookups using JDBC
- */
 @Slf4j
 public class DatabaseReferenceLookupStrategy implements RevenueContractReferenceLookupStrategy {
 
@@ -32,16 +36,15 @@ public class DatabaseReferenceLookupStrategy implements RevenueContractReference
             String invoiceId,
             String originalInvoiceId,
             String originalSalesOrderId) {
-
         String sql = sqlBuilder.buildSingleLookupQuery();
         Map<String, Object> params = Map.of(
                 "salesOrderId", salesOrderId,
                 "invoiceId", invoiceId,
                 "originalInvoiceId", originalInvoiceId,
                 "originalSalesOrderId", originalSalesOrderId);
-
         try {
-            List<Long> results = jdbc.query(sql, params, (rs, rowNum) -> rs.getLong("RevenueContractId"));
+            List<Long> results = jdbc.query(
+                    sql, params, (rs, rowNum) -> rs.getLong(RevenueContractGroupingConstants.REFERENCE_LOOKUP_VALUE_COLUMN));
             return results.stream().findFirst();
         } catch (DataAccessException e) {
             log.warn("Failed to resolve reference for salesOrderId={}, invoiceId={}", salesOrderId, invoiceId, e);
@@ -78,13 +81,12 @@ public class DatabaseReferenceLookupStrategy implements RevenueContractReference
                 new ArrayList<>(invoiceIds),
                 new ArrayList<>(originalInvoiceIds),
                 new ArrayList<>(originalSalesOrderIds));
-
         mapper.applyResolutionsToRecords(records, referenceMap);
     }
 
     @Override
     public String getStrategyName() {
-        return "DatabaseReferenceLookup";
+        return RevenueContractGroupingConstants.DATABASE_REFERENCE_LOOKUP_STRATEGY;
     }
 
     @Override
@@ -93,7 +95,6 @@ public class DatabaseReferenceLookupStrategy implements RevenueContractReference
             String invoiceId,
             String originalInvoiceId,
             String originalSalesOrderId) {
-        // This strategy can always attempt to handle any input
         return true;
     }
 
@@ -105,7 +106,6 @@ public class DatabaseReferenceLookupStrategy implements RevenueContractReference
 
         RevenueContractReferenceSqlBuilder.BatchLookupQuery query = sqlBuilder.buildBatchLookupQuery(
                 salesOrderIds, invoiceIds, originalInvoiceIds, originalSalesOrderIds);
-
         if (query.isEmpty()) {
             return new HashMap<>();
         }

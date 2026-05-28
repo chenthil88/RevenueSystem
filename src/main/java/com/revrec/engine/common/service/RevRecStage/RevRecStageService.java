@@ -1,5 +1,6 @@
 package com.revrec.engine.common.service.RevRecStage;
 
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.RevenueContractGroupingConstants;
 import com.revrec.engine.domain.service.RevRecStage.RevRecStageRecord;
 import com.revrec.engine.domain.service.RevRecStage.RevRecStageRecordMapper;
 import java.util.Arrays;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class RevRecStageService {
 
-    public static final String DEFAULT_GROUPING_VALUE = "GROUPING_DEFAULT_VALUE";
+    public static final String DEFAULT_GROUPING_VALUE = RevenueContractGroupingConstants.DEFAULT_GROUPING_VALUE;
 
     /**
      * Column order must match {@link RevRecStageRecordMapper} (same as {@code db_script.sql}).

@@ -1,10 +1,8 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.model;
 
 import lombok.Data;
 
-/**
- * Result object for grouping processing operations
- */
+/** Result of streaming grouping batch processing. */
 @Data
 public class GroupingProcessingResult {
     private boolean success;
@@ -28,7 +26,9 @@ public class GroupingProcessingResult {
     }
 
     public double getSuccessRate() {
-        if (totalRecords == 0) return 0.0;
+        if (totalRecords == 0) {
+            return 0.0;
+        }
         return ((double) updatedRecords / totalRecords) * 100;
     }
 }

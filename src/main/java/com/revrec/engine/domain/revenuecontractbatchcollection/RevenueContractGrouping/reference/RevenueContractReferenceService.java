@@ -1,15 +1,11 @@
-package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
+package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.reference;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping.model.RevRecStageGroupingRecord;
 import java.util.List;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
-/**
- * Orchestrates revenue contract reference resolution
- * Delegates to pluggable lookup strategies (Dependency Inversion + Strategy Pattern)
- * Responsibilities: Strategy selection, orchestration, logging
- */
 @Slf4j
 @Service
 public class RevenueContractReferenceService {
@@ -20,19 +16,16 @@ public class RevenueContractReferenceService {
         this.lookupStrategy = lookupStrategy;
     }
 
-    /**
-     * Batch resolve revenue contract IDs for multiple records at once
-     * Delegates to strategy implementation
-     */
     public void resolveRevenueContractIdsForBatch(List<RevRecStageGroupingRecord> records) {
         if (records == null || records.isEmpty()) {
             return;
         }
-
         try {
             lookupStrategy.resolveBatch(records);
-            log.debug("Batch resolution completed for {} records using strategy: {}",
-                    records.size(), lookupStrategy.getStrategyName());
+            log.debug(
+                    "Batch resolution completed for {} records using strategy: {}",
+                    records.size(),
+                    lookupStrategy.getStrategyName());
         } catch (ReferenceResolutionException e) {
             log.error("Batch resolution failed: {}", e.getMessage(), e);
             throw e;
@@ -42,21 +35,20 @@ public class RevenueContractReferenceService {
         }
     }
 
-    /**
-     * Single-record resolution for fallback scenarios
-     */
     public Optional<Long> resolveRevenueContractId(
             String salesOrderId,
             String invoiceId,
             String originalInvoiceId,
             String originalSalesOrderId) {
-
         if (!lookupStrategy.canHandle(salesOrderId, invoiceId, originalInvoiceId, originalSalesOrderId)) {
-            log.warn("Strategy cannot handle resolution request for IDs: so={}, inv={}, origInv={}, origSo={}",
-                    salesOrderId, invoiceId, originalInvoiceId, originalSalesOrderId);
+            log.warn(
+                    "Strategy cannot handle resolution request for IDs: so={}, inv={}, origInv={}, origSo={}",
+                    salesOrderId,
+                    invoiceId,
+                    originalInvoiceId,
+                    originalSalesOrderId);
             return Optional.empty();
         }
-
         try {
             return lookupStrategy.resolve(salesOrderId, invoiceId, originalInvoiceId, originalSalesOrderId);
         } catch (Exception e) {
