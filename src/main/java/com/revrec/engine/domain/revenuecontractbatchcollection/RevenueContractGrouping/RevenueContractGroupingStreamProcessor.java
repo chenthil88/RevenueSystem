@@ -67,12 +67,15 @@ public class RevenueContractGroupingStreamProcessor {
             streamReader.streamUnprocessedRecords(tenantId)
                     .forEach(record -> {
                         try {
-                            // Enrich record with grouping data
+                            // Just set grouping value and batchId (quick operation)
                             enrichRecordWithGrouping(record, batchId, groupingRule);
                             batch.add(record);
 
                             // Process batch when size reached
                             if (batch.size() >= config.getBatchSize()) {
+                                // Batch resolve all revenue contract IDs at once
+                                referenceService.resolveRevenueContractIdsForBatch(batch);
+
                                 int updated = batchUpdater.bulkUpdateGroupingData(batch);
                                 processedIds.addAll(batch.stream()
                                         .map(RevRecStageGroupingRecord::getId)
@@ -89,6 +92,9 @@ public class RevenueContractGroupingStreamProcessor {
 
             // Process remaining records
             if (!batch.isEmpty()) {
+                // Batch resolve remaining revenue contract IDs
+                referenceService.resolveRevenueContractIdsForBatch(batch);
+
                 int updated = batchUpdater.bulkUpdateGroupingData(batch);
                 processedIds.addAll(batch.stream()
                         .map(RevRecStageGroupingRecord::getId)
@@ -122,9 +128,6 @@ public class RevenueContractGroupingStreamProcessor {
         return result;
     }
 
-    /**
-     * Process records with parallel streams for better performance
-     */
     public GroupingProcessingResult processGroupingParallel(
             String tenantId,
             Long batchId,
@@ -136,34 +139,40 @@ public class RevenueContractGroupingStreamProcessor {
         result.setStartTime(System.currentTimeMillis());
 
         try {
-            List<RevRecStageGroupingRecord> records = streamReader.streamUnprocessedRecords(tenantId)
-                    .collect(Collectors.toList());
+            // Stream in batches to avoid loading everything into memory
+            List<RevRecStageGroupingRecord> allBatches = new ArrayList<>();
+            int batchSize = config.getBatchSize();
+            int updated = 0;
 
-            result.setTotalRecords(records.size());
-
-            // Process in parallel
-            records.parallelStream()
+            streamReader.streamUnprocessedRecords(tenantId)
                     .forEach(record -> {
                         try {
                             enrichRecordWithGrouping(record, batchId, groupingRule);
+                            allBatches.add(record);
+
+                            if (allBatches.size() >= batchSize) {
+                                // Resolve and update each batch
+                                referenceService.resolveRevenueContractIdsForBatch(allBatches);
+                                batchUpdater.bulkUpdateGroupingData(allBatches);
+                                result.incrementUpdatedRecords(allBatches.size());
+                                allBatches.clear();
+                            }
                         } catch (Exception e) {
                             log.error("Error enriching record id={}", record.getId(), e);
                             result.incrementFailedRecords();
                         }
                     });
 
-            // Batch update enriched records
-            int batchSize = config.getBatchSize();
-            for (int i = 0; i < records.size(); i += batchSize) {
-                int end = Math.min(i + batchSize, records.size());
-                List<RevRecStageGroupingRecord> batch = records.subList(i, end);
-                int updated = batchUpdater.bulkUpdateGroupingData(batch);
-                result.incrementUpdatedRecords(updated);
+            // Handle remaining batch
+            if (!allBatches.isEmpty()) {
+                referenceService.resolveRevenueContractIdsForBatch(allBatches);
+                batchUpdater.bulkUpdateGroupingData(allBatches);
+                result.incrementUpdatedRecords(allBatches.size());
             }
 
             result.setSuccess(true);
             log.info("Parallel grouping processing completed: total={}, updated={}, failed={}",
-                    records.size(), result.getUpdatedRecords(), result.getFailedRecords());
+                    result.getTotalRecords(), result.getUpdatedRecords(), result.getFailedRecords());
 
         } catch (Exception e) {
             log.error("Parallel grouping processing failed", e);
@@ -181,26 +190,14 @@ public class RevenueContractGroupingStreamProcessor {
             Long batchId,
             DynamicGroupingRule groupingRule) {
 
-        // Set batch ID
+        // Set batch ID (input parameter)
         record.setBatchId(batchId);
 
-        // Resolve revenue contract ID
-        if (record.getRevenueContractId() == null) {
-            Long resolvedId = referenceService.resolveRevenueContractId(
-                    record.getSalesOrderId(),
-                    record.getInvoiceId(),
-                    record.getOriginalInvoiceId(),
-                    record.getOriginalSalesOrderId());
-            if (resolvedId != null) {
-                record.setRevenueContractId(resolvedId);
-            }
-        }
-
-        // Apply grouping rule
+        // Apply grouping rule if not set
         if (record.getRevenueContractGroupValue() == null) {
             String groupingValue = groupingRule.evaluateGrouping(record);
             record.setRevenueContractGroupValue(
-                    groupingValue != null ? groupingValue : "GROUPING_DEFAULT_VALUE");
+                    groupingValue != null ? groupingValue : RevenueContractReferenceConstants.DEFAULT_GROUPING_VALUE);
         }
     }
 

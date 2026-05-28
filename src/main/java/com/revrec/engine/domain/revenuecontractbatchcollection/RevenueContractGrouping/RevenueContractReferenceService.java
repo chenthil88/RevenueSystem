@@ -1,68 +1,67 @@
 package com.revrec.engine.domain.revenuecontractbatchcollection.revenuecontractgrouping;
 
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 
 /**
- * Service for resolving revenue contract IDs from reference details
+ * Orchestrates revenue contract reference resolution
+ * Delegates to pluggable lookup strategies (Dependency Inversion + Strategy Pattern)
+ * Responsibilities: Strategy selection, orchestration, logging
  */
+@Slf4j
 @Service
 public class RevenueContractReferenceService {
 
-    private final NamedParameterJdbcTemplate jdbc;
+    private final RevenueContractReferenceLookupStrategy lookupStrategy;
 
-    public RevenueContractReferenceService(NamedParameterJdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public RevenueContractReferenceService(RevenueContractReferenceLookupStrategy lookupStrategy) {
+        this.lookupStrategy = lookupStrategy;
     }
 
     /**
-     * Resolve revenue contract ID from reference details using multiple lookup strategies
+     * Batch resolve revenue contract IDs for multiple records at once
+     * Delegates to strategy implementation
      */
-    public Long resolveRevenueContractId(
+    public void resolveRevenueContractIdsForBatch(List<RevRecStageGroupingRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+
+        try {
+            lookupStrategy.resolveBatch(records);
+            log.debug("Batch resolution completed for {} records using strategy: {}",
+                    records.size(), lookupStrategy.getStrategyName());
+        } catch (ReferenceResolutionException e) {
+            log.error("Batch resolution failed: {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during batch resolution", e);
+            throw new ReferenceResolutionException("Batch resolution failed unexpectedly", e);
+        }
+    }
+
+    /**
+     * Single-record resolution for fallback scenarios
+     */
+    public Optional<Long> resolveRevenueContractId(
             String salesOrderId,
             String invoiceId,
             String originalInvoiceId,
             String originalSalesOrderId) {
 
-        String sql = "SELECT \"RevenueContractId\" FROM \"revenueContractReferenceDetails\" " +
-                "WHERE (\"salesOrderId\" = :salesOrderId OR " +
-                "       \"invoiceId\" = :invoiceId OR " +
-                "       \"invoiceId\" = :originalInvoiceId OR " +
-                "       \"salesOrderId\" = :originalSalesOrderId) " +
-                "LIMIT 1";
+        if (!lookupStrategy.canHandle(salesOrderId, invoiceId, originalInvoiceId, originalSalesOrderId)) {
+            log.warn("Strategy cannot handle resolution request for IDs: so={}, inv={}, origInv={}, origSo={}",
+                    salesOrderId, invoiceId, originalInvoiceId, originalSalesOrderId);
+            return Optional.empty();
+        }
 
         try {
-            return jdbc.query(
-                    sql,
-                    Map.of(
-                            "salesOrderId", salesOrderId,
-                            "invoiceId", invoiceId,
-                            "originalInvoiceId", originalInvoiceId,
-                            "originalSalesOrderId", originalSalesOrderId
-                    ),
-                    (rs, rowNum) -> rs.getLong("RevenueContractId"))
-                    .stream()
-                    .findFirst()
-                    .orElse(null);
+            return lookupStrategy.resolve(salesOrderId, invoiceId, originalInvoiceId, originalSalesOrderId);
         } catch (Exception e) {
-            return null;
+            log.warn("Single record resolution failed for salesOrderId={}, invoiceId={}", salesOrderId, invoiceId, e);
+            return Optional.empty();
         }
-    }
-
-    /**
-     * Check if reference exists
-     */
-    public boolean referenceExists(String salesOrderId, String invoiceId) {
-        String sql = "SELECT COUNT(*) FROM \"revenueContractReferenceDetails\" " +
-                "WHERE \"salesOrderId\" = :salesOrderId OR \"invoiceId\" = :invoiceId";
-
-        Integer count = jdbc.queryForObject(
-                sql,
-                Map.of("salesOrderId", salesOrderId, "invoiceId", invoiceId),
-                Integer.class);
-
-        return count != null && count > 0;
     }
 }
