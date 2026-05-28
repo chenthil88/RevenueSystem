@@ -29,7 +29,7 @@ public class RevenueContractHeaderService {
     }
 
     private static final String SELECT =
-            "SELECT `RevenueContractId`, `version`, `TotalSellPrice`, `TotalListPrice`, `TotalCarveAmount`, `createdPeriodId`, `InitialContractModificationDate`, `ContractModificationDate`, `isRevenueContractPosted`, `AllocationTreatment`, `CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt`, `IsActive` FROM `revenueContractHeader`";
+            "SELECT `RevenueContractId`, `version`, `TotalSellPrice`, `TotalListPrice`, `TotalCarveAmount`, `createdPeriodId`, `InitialContractModificationDate`, `ContractModificationDate`, `isRevenueContractPosted`, `AllocationTreatment`, `CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt`, `IsAllocationInitialEntryCreated`, `IsActive` FROM `revenueContractHeader`";
 
     private static final String NEXT_REVENUE_CONTRACT_ID = "SELECT NEXTVAL(revenueContractHeaderIdSeq)";
     

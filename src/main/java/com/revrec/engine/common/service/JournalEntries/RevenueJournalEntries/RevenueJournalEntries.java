@@ -1,5 +1,6 @@
 package com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries;
 
+import com.revrec.engine.common.persistence.PersistenceFlags;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -7,13 +8,17 @@ import java.time.LocalDateTime;
 /**
  * Row shape for {@link RevenueJournalEntriesRecord}.
  */
-public interface RevenueJournalEntries {
+public interface RevenueJournalEntries extends PersistenceFlags {
 
     Long id();
 
     String tenantId();
 
     Long revenueContractId();
+
+    Long revenueContractLineId();
+
+    Long revenueContractVersion();
 
     Long accountPeriodId();
 

@@ -1,5 +1,6 @@
 package com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries;
 
+import com.revrec.engine.common.persistence.PersistenceFlags;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -7,13 +8,17 @@ import java.time.LocalDateTime;
 /**
  * Row contract for {@link AllocationJournalEntriesRecord} (JavaBean-style accessors, cf. legacy model pattern).
  */
-public interface AllocationJournalEntries {
+public interface AllocationJournalEntries extends PersistenceFlags {
 
     Long getId();
 
     String getTenantId();
 
     Long getRevenueContractId();
+
+    Long getRevenueContractLineId();
+
+    Long getRevenueContractVersion();
 
     Long getAccountPeriodId();
 

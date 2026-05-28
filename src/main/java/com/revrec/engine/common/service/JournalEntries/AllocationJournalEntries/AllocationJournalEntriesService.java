@@ -1,6 +1,10 @@
 package com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries;
 
+import com.revrec.engine.common.persistence.PersistenceFlags;
 import com.revrec.engine.integration.nosql.NoSqlRecordServer;
+import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractAllocationDetails.RevenueContractAllocationDetailsRecord;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -8,7 +12,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * TiDB-backed access to {@code AllocationJournalEntries} with optional Redis materialization.
+ * Aurora PostgreSQL-backed access to {@code AllocationJournalEntries} with optional Redis materialization.
  */
 @Service
 public class AllocationJournalEntriesService {
@@ -27,7 +31,7 @@ public class AllocationJournalEntriesService {
     }
 
     private static final String SELECT =
-            "SELECT `id`, `revenueContractId`, `accountPeriodId`, `JournalAccountPeriodId`, `DebitAccountName`, `CreditAccountName`, `Amount`, `Currency`, `functionalCurrency`, `exchangeRate`, `globalexchangeRate`, `exchangeRateDate`, `debitAccount1`, `debitAccount2`, `debitAccount3`, `debitAccount4`, `debitAccount5`, `debitAccount6`, `debitAccount7`, `debitAccount8`, `debitAccount9`, `debitAccount10`, `creditAccount1`, `creditAccount2`, `creditAccount3`, `creditAccount4`, `creditAccount5`, `creditAccount6`, `creditAccount7`, `creditAccount8`, `creditAccount9`, `creditAccount10`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`, `createdPeriodId`, `updatedPeriodId`, `IsPosted`, `IsUnbilledAccount`, `IsInitialEntry`, `isUnbilledReversal`, `reversalFlag`, `customField1`, `customField2`, `customField3`, `customField4`, `customField5`, `customField6`, `customField7`, `customField8`, `customField9`, `customField10` FROM `AllocationJournalEntries`";
+            "SELECT `id`, `revenueContractId`, `revenueContractLineId`, `revenueContractVersion`, `accountPeriodId`, `JournalAccountPeriodId`, `DebitAccountName`, `CreditAccountName`, `Amount`, `Currency`, `functionalCurrency`, `exchangeRate`, `globalexchangeRate`, `exchangeRateDate`, `debitAccount1`, `debitAccount2`, `debitAccount3`, `debitAccount4`, `debitAccount5`, `debitAccount6`, `debitAccount7`, `debitAccount8`, `debitAccount9`, `debitAccount10`, `creditAccount1`, `creditAccount2`, `creditAccount3`, `creditAccount4`, `creditAccount5`, `creditAccount6`, `creditAccount7`, `creditAccount8`, `creditAccount9`, `creditAccount10`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`, `createdPeriodId`, `updatedPeriodId`, `IsPosted`, `IsUnbilledAccount`, `IsInitialEntry`, `isUnbilledReversal`, `reversalFlag`, `customField1`, `customField2`, `customField3`, `customField4`, `customField5`, `customField6`, `customField7`, `customField8`, `customField9`, `customField10` FROM `AllocationJournalEntries`";
 
     public Optional<AllocationJournalEntriesRecord> findById(Long id) {
         var list = jdbc.query(SELECT + " WHERE `id` = :id", Map.of("id", id), rowMapper);
@@ -47,5 +51,34 @@ public class AllocationJournalEntriesService {
     public List<AllocationJournalEntriesRecord> findAll(int limit, int offset) {
         return jdbc.query(SELECT + " LIMIT :limit OFFSET :offset",
                 Map.of("limit", limit, "offset", offset), rowMapper);
+    }
+
+    /**
+     * Prepares an {@link AllocationJournalEntriesRecord} from a revenue contract allocation record.
+     *
+     * <p>Fields that cannot be derived from the allocation record are left as {@code null} and must
+     * be populated by upstream services (e.g. account segments, period ids, posting flags).
+     */
+    public AllocationJournalEntriesRecord prepareAllocationJournalEntry(RevenueContractAllocationDetailsRecord allocation) {
+        if (allocation == null) {
+            throw new IllegalArgumentException("allocation must not be null");
+        }
+
+        var entry = new AllocationJournalEntriesRecord();
+        entry.setRevenueContractId(allocation.revenueContractId());
+        entry.setRevenueContractLineId(allocation.id()); // default mapping; override if line id differs
+        entry.setAmount(allocation.allocatedPrice());
+        entry.setCurrency(allocation.allocationCurrency());
+        entry.setExchangeRate(allocation.exchangeRate());
+        entry.setGlobalexchangeRate(allocation.globalexchangeRate());
+        entry.setExchangeRateDate(allocation.exchangeRateDate());
+        entry.setCreatedPeriodId(allocation.createdPeriodId());
+        entry.setCreatedBy(allocation.createdBy());
+        entry.setCreatedAt(allocation.createdAt());
+        entry.setUpdatedBy(allocation.updatedBy());
+        entry.setUpdatedAt(allocation.updatedAt());
+        entry.setIsUpdate(PersistenceFlags.notUpdate());
+        entry.setIsInsert(PersistenceFlags.notInsert());
+        return entry;
     }
 }

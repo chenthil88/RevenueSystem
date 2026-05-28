@@ -15,37 +15,25 @@ public final class RevenueContractHeaderRecordMapper implements RowMapper<Revenu
     @Override
     public @NonNull RevenueContractHeaderRecord mapRow(@NonNull ResultSet rs, int rowNum) throws SQLException {
         int c = 1;
-        var revenueContractId = rs.getObject(c++, Long.class);
-        var version = rs.getObject(c++, Long.class);
-        var totalSellPrice = rs.getBigDecimal(c++);
-        var totalListPrice = rs.getBigDecimal(c++);
-        var totalCarveAmount = rs.getBigDecimal(c++);
-        var createdPeriodId = rs.getObject(c++, Long.class);
-        var initialContractModificationDate = rs.getObject(c++, java.time.LocalDate.class);
-        var contractModificationDate = rs.getObject(c++, java.time.LocalDate.class);
-        var isRevenueContractPosted = rs.getObject(c++, Boolean.class);
-        var allocationTreatment = rs.getString(c++);
-        var createdBy = rs.getString(c++);
-        var createdAt = rs.getObject(c++, java.time.LocalDateTime.class);
-        var updatedBy = rs.getString(c++);
-        var updatedAt = rs.getObject(c++, java.time.LocalDateTime.class);
-        var isActive = rs.getObject(c++, Boolean.class);
-        return new RevenueContractHeaderRecord(
-                revenueContractId,
-                version,
-                totalSellPrice,
-                totalListPrice,
-                totalCarveAmount,
-                createdPeriodId,
-                initialContractModificationDate,
-                contractModificationDate,
-                isRevenueContractPosted,
-                allocationTreatment,
-                createdBy,
-                createdAt,
-                updatedBy,
-                updatedAt,
-                isActive
-        );
+        var record = new RevenueContractHeaderRecord();
+        record.setRevenueContractId(rs.getObject(c++, Long.class));
+        record.setVersion(rs.getObject(c++, Long.class));
+        record.setTotalSellPrice(rs.getBigDecimal(c++));
+        record.setTotalListPrice(rs.getBigDecimal(c++));
+        record.setTotalCarveAmount(rs.getBigDecimal(c++));
+        record.setCreatedPeriodId(rs.getObject(c++, Long.class));
+        record.setInitialContractModificationDate(rs.getObject(c++, java.time.LocalDate.class));
+        record.setContractModificationDate(rs.getObject(c++, java.time.LocalDate.class));
+        record.setIsRevenueContractPosted(rs.getObject(c++, Boolean.class));
+        record.setAllocationTreatment(rs.getString(c++));
+        record.setCreatedBy(rs.getString(c++));
+        record.setCreatedAt(rs.getObject(c++, java.time.LocalDateTime.class));
+        record.setUpdatedBy(rs.getString(c++));
+        record.setUpdatedAt(rs.getObject(c++, java.time.LocalDateTime.class));
+        record.setIsAllocationInitialEntryCreated(rs.getObject(c++, Boolean.class));
+        record.setIsActive(rs.getObject(c++, Boolean.class));
+        record.setIsEligibleForRelease(false);
+        record.setIsEligibleForRecalculation(false);
+        return record;
     }
 }

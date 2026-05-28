@@ -40,4 +40,47 @@ public interface RevenueContractHeader {
     LocalDateTime updatedAt();
 
     Boolean isActive();
+
+    /**
+     * Non-DB field used during batch processing to decide release eligibility.
+     */
+    Boolean isEligibleForRelease();
+
+    /**
+     * @return {@code true} only when {@link #isEligibleForRelease()} is {@link Boolean#TRUE}; otherwise {@code false}.
+     */
+    default boolean eligibleForRelease() {
+        return Boolean.TRUE.equals(isEligibleForRelease());
+    }
+
+    /**
+     * Non-DB field used during batch processing to decide recalculation eligibility.
+     */
+    Boolean isEligibleForRecalculation();
+
+    /**
+     * @return {@code true} only when {@link #isEligibleForRecalculation()} is {@link Boolean#TRUE}; otherwise {@code false}.
+     */
+    default boolean eligibleForRecalculation() {
+        return Boolean.TRUE.equals(isEligibleForRecalculation());
+    }
+
+    /**
+     * Whether allocation initial entry was created.
+     */
+    Boolean isAllocationInitialEntryCreated();
+
+    /**
+     * @return {@code true} only when {@link #isAllocationInitialEntryCreated()} is {@link Boolean#TRUE}; otherwise {@code false}.
+     */
+    default boolean allocationInitialEntryCreated() {
+        return Boolean.TRUE.equals(isAllocationInitialEntryCreated());
+    }
+
+    /**
+     * Helper to decide whether allocation initial entry creation is required for release processing.
+     */
+    default boolean shouldCreateAllocationInitialEntry() {
+        return eligibleForRelease() && !allocationInitialEntryCreated();
+    }
 }
