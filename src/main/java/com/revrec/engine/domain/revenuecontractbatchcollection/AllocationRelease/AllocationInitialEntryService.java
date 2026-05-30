@@ -4,12 +4,10 @@ import com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries.
 import com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries.AllocationJournalEntriesService;
 import com.revrec.engine.domain.service.RevenueContractHeader.RevenueContractHeaderRecord;
 import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractAllocationDetails.RevenueContractAllocationDetailsRecord;
-import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractOrderDetails.RevenueContractOrderDetailsRecord;
 import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractOrderRecords;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,42 +20,41 @@ public class AllocationInitialEntryService {
     }
 
     public void createInitialEntry(
-            List<RevenueContractOrderRecords> revenueContractOrderRecords,
+            RevenueContractOrderRecords revenueContractOrderRecords,
             RevenueContractHeaderRecord revenueContractHeaderRecord) {
-        Objects.requireNonNull(revenueContractOrderRecords, "revenueContractOrderRecords");
-        Objects.requireNonNull(revenueContractHeaderRecord, "revenueContractHeaderRecord");
-
-        Long openPeriodId = revenueContractHeaderRecord.getCreatedPeriodId();
+        // TODO: Get openAccountPeriodId from batch context
+        Long openAccountPeriodId = revenueContractHeaderRecord.getCreatedPeriodId();
         Long revenueContractVersion = revenueContractHeaderRecord.getVersion();
 
-        List<AllocationJournalEntriesRecord> entriesToInsert = new ArrayList<>();
-        for (RevenueContractOrderRecords orderRecords : revenueContractOrderRecords) {
-            for (RevenueContractOrderDetailsRecord orderDetail : orderRecords.orderDetails()) {
-                orderRecords.findAllocationDetailsFor(orderDetail)
-                        .filter(AllocationInitialEntryService::hasNonZeroCarveAmount)
-                        .map(allocation -> prepareEntry(allocation, openPeriodId, revenueContractVersion))
-                        .ifPresent(entriesToInsert::add);
+        List<AllocationJournalEntriesRecord> allocationJournalEntriesToInsert = new ArrayList<>();
+        for (RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord :
+                revenueContractOrderRecords.getRevenueContractAllocationDetailsRecord().values()) {
+            if (hasNonZeroCarveAmount(revenueContractAllocationDetailsRecord)) {
+                allocationJournalEntriesToInsert.add(prepareAllocationJournalEntry(
+                        revenueContractAllocationDetailsRecord, openAccountPeriodId, revenueContractVersion));
             }
         }
 
-        if (!entriesToInsert.isEmpty()) {
-            allocationJournalEntriesService.insertAll(entriesToInsert);
+        if (!allocationJournalEntriesToInsert.isEmpty()) {
+            allocationJournalEntriesService.insertAll(allocationJournalEntriesToInsert);
         }
         revenueContractHeaderRecord.setIsAllocationInitialEntryCreated(true);
     }
 
-    private AllocationJournalEntriesRecord prepareEntry(
-            RevenueContractAllocationDetailsRecord allocation,
-            Long openPeriodId,
+    private AllocationJournalEntriesRecord prepareAllocationJournalEntry(
+            RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord,
+            Long openAccountPeriodId,
             Long revenueContractVersion) {
-        AllocationJournalEntriesRecord entry =
-                allocationJournalEntriesService.prepareAllocationJournalEntry(allocation, openPeriodId);
-        entry.setRevenueContractVersion(revenueContractVersion);
-        return entry;
+        AllocationJournalEntriesRecord allocationJournalEntryRecord =
+                allocationJournalEntriesService.prepareAllocationJournalEntry(
+                        revenueContractAllocationDetailsRecord, openAccountPeriodId);
+        allocationJournalEntryRecord.setRevenueContractVersion(revenueContractVersion);
+        return allocationJournalEntryRecord;
     }
 
-    private boolean hasNonZeroCarveAmount(RevenueContractAllocationDetailsRecord allocation) {
-        BigDecimal carveAmount = allocation.carveAmount();
+    private boolean hasNonZeroCarveAmount(
+            RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord) {
+        BigDecimal carveAmount = revenueContractAllocationDetailsRecord.carveAmount();
         return carveAmount != null && carveAmount.compareTo(BigDecimal.ZERO) != 0;
     }
 }

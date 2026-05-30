@@ -83,4 +83,12 @@ public interface RevenueContractHeader {
     default boolean shouldCreateAllocationInitialEntry() {
         return eligibleForRelease() && !allocationInitialEntryCreated();
     }
+
+    /**
+     * Whether this contract uses retrospective allocation treatment ({@code allocationTreatment}).
+     */
+    default boolean isRetrospective() {
+        return allocationTreatment() != null
+                && allocationTreatment().equalsIgnoreCase("RETROSPECTIVE");
+    }
 }

@@ -13,18 +13,24 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * Aggregate of all {@code RevenueContractOrder} table rows, indexed by {@code id} for O(1) lookup.
+ * Aggregate of {@code RevenueContractOrder} table rows for a single revenue contract, indexed by
+ * {@code id} for O(1) lookup.
  *
- * <p>Example:
+ * <p>Build from streams (typical for one RC loaded from the database):
  *
  * <pre>{@code
+ * RevenueContractOrderRecords records = RevenueContractOrderRecords.fromStreams(
+ *         orderDetailsStream,
+ *         orderAttributesStream,
+ *         orderAccountDetailsStream,
+ *         allocationDetailsStream);
+ *
  * for (RevenueContractOrderDetailsRecord detail : records.orderDetails()) {
  *     RevenueContractAllocationDetailsRecord allocation =
  *             records.getAllocationDetails(detail.id()).orElse(null);
- *     // or when table ids differ:
- *     allocation = records.findAllocationDetailsFor(detail).orElse(null);
  * }
  * }</pre>
  */
@@ -35,25 +41,34 @@ public final class RevenueContractOrderRecords implements Serializable {
     private final Map<Long, RevenueContractOrderAccountDetailsRecord> orderAccountDetailsById;
     private final Map<Long, RevenueContractAllocationDetailsRecord> allocationDetailsById;
 
-    private final Map<Long, RevenueContractOrderAttributesRecord> orderAttributesByRevenueContractId;
-    private final Map<Long, RevenueContractOrderAccountDetailsRecord> orderAccountDetailsByRevenueContractId;
-    private final Map<Long, RevenueContractAllocationDetailsRecord> allocationDetailsByRevenueContractId;
-
     private RevenueContractOrderRecords(
             Map<Long, RevenueContractOrderDetailsRecord> orderDetailsById,
             Map<Long, RevenueContractOrderAttributesRecord> orderAttributesById,
             Map<Long, RevenueContractOrderAccountDetailsRecord> orderAccountDetailsById,
-            Map<Long, RevenueContractAllocationDetailsRecord> allocationDetailsById,
-            Map<Long, RevenueContractOrderAttributesRecord> orderAttributesByRevenueContractId,
-            Map<Long, RevenueContractOrderAccountDetailsRecord> orderAccountDetailsByRevenueContractId,
-            Map<Long, RevenueContractAllocationDetailsRecord> allocationDetailsByRevenueContractId) {
+            Map<Long, RevenueContractAllocationDetailsRecord> allocationDetailsById) {
         this.orderDetailsById = Map.copyOf(orderDetailsById);
         this.orderAttributesById = Map.copyOf(orderAttributesById);
         this.orderAccountDetailsById = Map.copyOf(orderAccountDetailsById);
         this.allocationDetailsById = Map.copyOf(allocationDetailsById);
-        this.orderAttributesByRevenueContractId = Map.copyOf(orderAttributesByRevenueContractId);
-        this.orderAccountDetailsByRevenueContractId = Map.copyOf(orderAccountDetailsByRevenueContractId);
-        this.allocationDetailsByRevenueContractId = Map.copyOf(allocationDetailsByRevenueContractId);
+    }
+
+    /**
+     * Indexes the four record streams by {@code id}. When duplicate ids appear, the first record wins.
+     */
+    public static RevenueContractOrderRecords fromStreams(
+            Stream<RevenueContractOrderDetailsRecord> orderDetails,
+            Stream<RevenueContractOrderAttributesRecord> orderAttributes,
+            Stream<RevenueContractOrderAccountDetailsRecord> orderAccountDetails,
+            Stream<RevenueContractAllocationDetailsRecord> allocationDetails) {
+        Objects.requireNonNull(orderDetails, "orderDetails");
+        Objects.requireNonNull(orderAttributes, "orderAttributes");
+        Objects.requireNonNull(orderAccountDetails, "orderAccountDetails");
+        Objects.requireNonNull(allocationDetails, "allocationDetails");
+        return new RevenueContractOrderRecords(
+                indexById(orderDetails, RevenueContractOrderDetailsRecord::id),
+                indexById(orderAttributes, RevenueContractOrderAttributesRecord::id),
+                indexById(orderAccountDetails, RevenueContractOrderAccountDetailsRecord::id),
+                indexById(allocationDetails, RevenueContractAllocationDetailsRecord::id));
     }
 
     public static RevenueContractOrderRecords empty() {
@@ -65,15 +80,11 @@ public final class RevenueContractOrderRecords implements Serializable {
             List<RevenueContractOrderAttributesRecord> orderAttributes,
             List<RevenueContractOrderAccountDetailsRecord> orderAccountDetails,
             List<RevenueContractAllocationDetailsRecord> allocationDetails) {
-        return new RevenueContractOrderRecords(
-                indexById(orderDetails, RevenueContractOrderDetailsRecord::id),
-                indexById(orderAttributes, RevenueContractOrderAttributesRecord::id),
-                indexById(orderAccountDetails, RevenueContractOrderAccountDetailsRecord::id),
-                indexById(allocationDetails, RevenueContractAllocationDetailsRecord::id),
-                indexByRevenueContractId(orderAttributes, RevenueContractOrderAttributesRecord::revenueContractId),
-                indexByRevenueContractId(
-                        orderAccountDetails, RevenueContractOrderAccountDetailsRecord::revenueContractId),
-                indexByRevenueContractId(allocationDetails, RevenueContractAllocationDetailsRecord::revenueContractId));
+        return fromStreams(
+                streamOrEmpty(orderDetails),
+                streamOrEmpty(orderAttributes),
+                streamOrEmpty(orderAccountDetails),
+                streamOrEmpty(allocationDetails));
     }
 
     public static RevenueContractOrderRecords forContract(
@@ -88,19 +99,19 @@ public final class RevenueContractOrderRecords implements Serializable {
                 allocationDetails != null ? List.of(allocationDetails) : List.of());
     }
 
-    public Map<Long, RevenueContractOrderDetailsRecord> orderDetailsById() {
+    public Map<Long, RevenueContractOrderDetailsRecord> getRevenueContractOrderDetailsRecord() {
         return orderDetailsById;
     }
 
-    public Map<Long, RevenueContractOrderAttributesRecord> orderAttributesById() {
+    public Map<Long, RevenueContractOrderAttributesRecord> getRevenueContractOrderAttributesRecord() {
         return orderAttributesById;
     }
 
-    public Map<Long, RevenueContractOrderAccountDetailsRecord> orderAccountDetailsById() {
+    public Map<Long, RevenueContractOrderAccountDetailsRecord> getRevenueContractOrderAccountDetailsRecord() {
         return orderAccountDetailsById;
     }
 
-    public Map<Long, RevenueContractAllocationDetailsRecord> allocationDetailsById() {
+    public Map<Long, RevenueContractAllocationDetailsRecord> getRevenueContractAllocationDetailsRecord() {
         return allocationDetailsById;
     }
 
@@ -126,17 +137,20 @@ public final class RevenueContractOrderRecords implements Serializable {
 
     public Optional<RevenueContractOrderAttributesRecord> findOrderAttributesFor(
             RevenueContractOrderDetailsRecord orderDetail) {
-        return resolve(orderDetail, orderAttributesById, orderAttributesByRevenueContractId);
+        Objects.requireNonNull(orderDetail, "orderDetail");
+        return getOrderAttributes(orderDetail.id());
     }
 
     public Optional<RevenueContractOrderAccountDetailsRecord> findOrderAccountDetailsFor(
             RevenueContractOrderDetailsRecord orderDetail) {
-        return resolve(orderDetail, orderAccountDetailsById, orderAccountDetailsByRevenueContractId);
+        Objects.requireNonNull(orderDetail, "orderDetail");
+        return getOrderAccountDetails(orderDetail.id());
     }
 
     public Optional<RevenueContractAllocationDetailsRecord> findAllocationDetailsFor(
             RevenueContractOrderDetailsRecord orderDetail) {
-        return resolve(orderDetail, allocationDetailsById, allocationDetailsByRevenueContractId);
+        Objects.requireNonNull(orderDetail, "orderDetail");
+        return getAllocationDetails(orderDetail.id());
     }
 
     public boolean isEmpty() {
@@ -152,38 +166,13 @@ public final class RevenueContractOrderRecords implements Serializable {
                 .findFirst();
     }
 
-    private static <T> Map<Long, T> indexById(List<T> records, Function<T, Long> idExtractor) {
-        if (records == null || records.isEmpty()) {
-            return Map.of();
-        }
-        return records.stream()
+    private static <T> Stream<T> streamOrEmpty(List<T> records) {
+        return records == null ? Stream.empty() : records.stream();
+    }
+
+    private static <T> Map<Long, T> indexById(Stream<T> records, Function<T, Long> idExtractor) {
+        return records
                 .filter(record -> idExtractor.apply(record) != null)
                 .collect(Collectors.toMap(idExtractor, Function.identity(), (left, right) -> left, LinkedHashMap::new));
-    }
-
-    private static <T> Map<Long, T> indexByRevenueContractId(
-            List<T> records, Function<T, Long> revenueContractIdExtractor) {
-        if (records == null || records.isEmpty()) {
-            return Map.of();
-        }
-        return records.stream()
-                .filter(record -> revenueContractIdExtractor.apply(record) != null)
-                .collect(Collectors.toMap(
-                        revenueContractIdExtractor, Function.identity(), (left, right) -> left, LinkedHashMap::new));
-    }
-
-    private static <T> Optional<T> resolve(
-            RevenueContractOrderDetailsRecord orderDetail,
-            Map<Long, T> byId,
-            Map<Long, T> byRevenueContractId) {
-        Objects.requireNonNull(orderDetail, "orderDetail");
-        T byRecordId = byId.get(orderDetail.id());
-        if (byRecordId != null) {
-            return Optional.of(byRecordId);
-        }
-        if (orderDetail.revenueContractId() == null) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(byRevenueContractId.get(orderDetail.revenueContractId()));
     }
 }
