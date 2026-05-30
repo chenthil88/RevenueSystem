@@ -20,6 +20,7 @@ public class RevenueContractAllocationDetailsRecord implements RevenueContractAl
     private BigDecimal globalexchangeRate;
     private LocalDate exchangeRateDate;
     private BigDecimal carveAmount;
+    private BigDecimal unreleasedCarveAmount;
     private BigDecimal cumulativeReleasedAmount;
     private BigDecimal cumulativeUnReleasedAmount;
     private BigDecimal transactionPrice;
@@ -67,6 +68,10 @@ public class RevenueContractAllocationDetailsRecord implements RevenueContractAl
     public void setExchangeRateDate(LocalDate exchangeRateDate) { this.exchangeRateDate = exchangeRateDate; }
     public BigDecimal getCarveAmount() { return carveAmount; }
     public void setCarveAmount(BigDecimal carveAmount) { this.carveAmount = carveAmount; }
+    public BigDecimal getUnreleasedCarveAmount() { return unreleasedCarveAmount; }
+    public void setUnreleasedCarveAmount(BigDecimal unreleasedCarveAmount) {
+        this.unreleasedCarveAmount = unreleasedCarveAmount;
+    }
     public BigDecimal getCumulativeReleasedAmount() { return cumulativeReleasedAmount; }
     public void setCumulativeReleasedAmount(BigDecimal cumulativeReleasedAmount) { this.cumulativeReleasedAmount = cumulativeReleasedAmount; }
     public BigDecimal getCumulativeUnReleasedAmount() { return cumulativeUnReleasedAmount; }
@@ -133,6 +138,7 @@ public class RevenueContractAllocationDetailsRecord implements RevenueContractAl
     @Override public BigDecimal globalexchangeRate() { return globalexchangeRate; }
     @Override public LocalDate exchangeRateDate() { return exchangeRateDate; }
     @Override public BigDecimal carveAmount() { return carveAmount; }
+    @Override public BigDecimal unreleasedCarveAmount() { return unreleasedCarveAmount; }
     @Override public BigDecimal cumulativeReleasedAmount() { return cumulativeReleasedAmount; }
     @Override public BigDecimal cumulativeUnReleasedAmount() { return cumulativeUnReleasedAmount; }
     @Override public BigDecimal transactionPrice() { return transactionPrice; }

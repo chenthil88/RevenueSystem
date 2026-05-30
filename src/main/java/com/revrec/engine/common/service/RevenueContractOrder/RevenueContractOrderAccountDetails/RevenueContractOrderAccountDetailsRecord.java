@@ -1,5 +1,6 @@
 package com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractOrderAccountDetails;
 
+import com.revrec.engine.common.accountdetails.AccountDetailsRecord;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -47,6 +48,6 @@ public record RevenueContractOrderAccountDetailsRecord(
         LocalDateTime updatedAt,
         String createdBy,
         String updatedBy
-) implements RevenueContractOrderAccountDetails, Serializable {
+) implements RevenueContractOrderAccountDetails, AccountDetailsRecord, Serializable {
     public static final String TABLE_NAME = "revenueContractOrderAccountDetails";
 }

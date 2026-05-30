@@ -29,7 +29,7 @@ public class RevenueContractAllocationDetailsService {
     }
 
     private static final String SELECT =
-            "SELECT `id`, `revenueContractId`, `ExtendedSspPrice`, `allocationCurrency`, `exchangeRate`, `globalexchangeRate`, `exchangeRateDate`, `CarveAmount`, `CumulativeReleasedAmount`, `CumulativeUnReleasedAmount`, `TransactionPrice`, `AllocatedPrice`, `NetQuantity`, `Term`, `BookId`, `OrganizationId`, `TransactionFunctionalPrice`, `SspTemplateId`, `SspId`, `sspType`, `sspPrice`, `sspPercentage`, `aboveSspPrice`, `belowSspPrice`, `belowMidPercentage`, `aboveMidPercentage`, `IsCancelOrder`, `IsReturnOrder`, `createdPeriodId`, `CumulativeCarveAmount`, `CumulativeAllocatedPrice`, `Comments`, `CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt` FROM `revenueContractAllocationDetails`";
+            "SELECT `id`, `revenueContractId`, `ExtendedSspPrice`, `allocationCurrency`, `exchangeRate`, `globalexchangeRate`, `exchangeRateDate`, `CarveAmount`, `UnreleasedCarveAmount`, `CumulativeReleasedAmount`, `CumulativeUnReleasedAmount`, `TransactionPrice`, `AllocatedPrice`, `NetQuantity`, `Term`, `BookId`, `OrganizationId`, `TransactionFunctionalPrice`, `SspTemplateId`, `SspId`, `sspType`, `sspPrice`, `sspPercentage`, `aboveSspPrice`, `belowSspPrice`, `belowMidPercentage`, `aboveMidPercentage`, `IsCancelOrder`, `IsReturnOrder`, `createdPeriodId`, `CumulativeCarveAmount`, `CumulativeAllocatedPrice`, `Comments`, `CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt` FROM `revenueContractAllocationDetails`";
     public Optional<RevenueContractAllocationDetailsRecord> findById(Long id) {
         var list = jdbc.query(SELECT + " WHERE `id` = :id", Map.of("id", id), rowMapper);
         return list.stream().findFirst();

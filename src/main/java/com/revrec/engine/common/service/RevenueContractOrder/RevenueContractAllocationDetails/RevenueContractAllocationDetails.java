@@ -27,6 +27,8 @@ public interface RevenueContractAllocationDetails {
 
     BigDecimal carveAmount();
 
+    BigDecimal unreleasedCarveAmount();
+
     BigDecimal cumulativeReleasedAmount();
 
     BigDecimal cumulativeUnReleasedAmount();

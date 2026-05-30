@@ -24,6 +24,7 @@ public final class RevenueContractAllocationDetailsRecordMapper implements RowMa
         record.setGlobalexchangeRate(rs.getBigDecimal(c++));
         record.setExchangeRateDate(rs.getObject(c++, java.time.LocalDate.class));
         record.setCarveAmount(rs.getBigDecimal(c++));
+        record.setUnreleasedCarveAmount(rs.getBigDecimal(c++));
         record.setCumulativeReleasedAmount(rs.getBigDecimal(c++));
         record.setCumulativeUnReleasedAmount(rs.getBigDecimal(c++));
         record.setTransactionPrice(rs.getBigDecimal(c++));

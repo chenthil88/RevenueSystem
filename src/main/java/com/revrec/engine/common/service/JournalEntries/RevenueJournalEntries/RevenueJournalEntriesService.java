@@ -54,6 +54,41 @@ public class RevenueJournalEntriesService {
                 Map.of("limit", limit, "offset", offset), rowMapper);
     }
 
+    /**
+     * Revenue journal rows for a contract line (retrospective release detail loop).
+     */
+    public List<RevenueJournalEntriesRecord> findByRevenueContractLineId(Long revenueContractLineId) {
+        if (revenueContractLineId == null) {
+            return List.of();
+        }
+        return jdbc.query(
+                SELECT + " WHERE `revenueContractLineId` = :revenueContractLineId"
+                        + " ORDER BY `accountPeriodId` ASC, `id` ASC",
+                Map.of("revenueContractLineId", revenueContractLineId),
+                rowMapper);
+    }
+
+    /**
+     * Revenue journal rows for a contract line and version (prospective release detail loop).
+     */
+    public List<RevenueJournalEntriesRecord> findByRevenueContractLineIdAndVersion(
+            Long revenueContractLineId, Long revenueContractId, Long revenueContractVersion) {
+        if (revenueContractLineId == null || revenueContractId == null || revenueContractVersion == null) {
+            return List.of();
+        }
+        return jdbc.query(
+                SELECT
+                        + " WHERE `revenueContractLineId` = :revenueContractLineId"
+                        + " AND `revenueContractId` = :revenueContractId"
+                        + " AND `revenueContractVersion` = :revenueContractVersion"
+                        + " ORDER BY `accountPeriodId` ASC, `id` ASC",
+                Map.of(
+                        "revenueContractLineId", revenueContractLineId,
+                        "revenueContractId", revenueContractId,
+                        "revenueContractVersion", revenueContractVersion),
+                rowMapper);
+    }
+
     private static final String RETROSPECTIVE_BY_LINE_AND_PERIOD =
             """
             SELECT
