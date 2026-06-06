@@ -47,4 +47,19 @@ public class CurrentOpenPeriodService {
         return jdbc.query(SELECT + " LIMIT :limit OFFSET :offset",
                 Map.of("limit", limit, "offset", offset), rowMapper);
     }
+
+    /**
+     * Open accounting period for an organization and book (used when initializing batch context).
+     */
+    public Optional<CurrentOpenPeriodRecord> findOpenPeriodByOrganizationAndBook(
+            Long organizationId, Long bookId) {
+        if (organizationId == null || bookId == null) {
+            return Optional.empty();
+        }
+        var list = jdbc.query(
+                SELECT + " WHERE `OrganizationId` = :organizationId AND `BookId` = :bookId LIMIT 1",
+                Map.of("organizationId", organizationId, "bookId", bookId),
+                rowMapper);
+        return list.stream().findFirst();
+    }
 }

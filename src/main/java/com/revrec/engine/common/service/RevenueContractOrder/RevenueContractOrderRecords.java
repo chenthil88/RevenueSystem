@@ -135,6 +135,30 @@ public final class RevenueContractOrderRecords implements Serializable {
         return Optional.ofNullable(allocationDetailsById.get(id));
     }
 
+    /**
+     * All order rows for a revenue contract line id. Empty when allocation details are missing
+     * (allocation is required for release/allocation processing).
+     */
+    public Optional<RevenueContractOrderLineRecords> getLineRecords(long revenueContractLineId) {
+        RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord =
+                allocationDetailsById.get(revenueContractLineId);
+        if (revenueContractAllocationDetailsRecord == null) {
+            return Optional.empty();
+        }
+
+        RevenueContractOrderLineRecords revenueContractOrderLineRecords = new RevenueContractOrderLineRecords();
+        revenueContractOrderLineRecords.setRevenueContractLineId(revenueContractLineId);
+        revenueContractOrderLineRecords.setRevenueContractOrderDetailsRecord(
+                orderDetailsById.get(revenueContractLineId));
+        revenueContractOrderLineRecords.setRevenueContractOrderAttributesRecord(
+                orderAttributesById.get(revenueContractLineId));
+        revenueContractOrderLineRecords.setRevenueContractOrderAccountDetailsRecord(
+                orderAccountDetailsById.get(revenueContractLineId));
+        revenueContractOrderLineRecords.setRevenueContractAllocationDetailsRecord(
+                revenueContractAllocationDetailsRecord);
+        return Optional.of(revenueContractOrderLineRecords);
+    }
+
     public Optional<RevenueContractOrderAttributesRecord> findOrderAttributesFor(
             RevenueContractOrderDetailsRecord orderDetail) {
         Objects.requireNonNull(orderDetail, "orderDetail");

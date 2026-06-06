@@ -89,6 +89,61 @@ public class RevenueJournalEntriesService {
                 rowMapper);
     }
 
+    /**
+     * All revenue journal rows for a contract version (prospective release — single batch load).
+     */
+    public List<RevenueJournalEntriesRecord> findByRevenueContractIdAndVersion(
+            Long revenueContractId, Long revenueContractVersion) {
+        if (revenueContractId == null || revenueContractVersion == null) {
+            return List.of();
+        }
+        return jdbc.query(
+                SELECT
+                        + " WHERE `revenueContractId` = :revenueContractId"
+                        + " AND `revenueContractVersion` = :revenueContractVersion"
+                        + " ORDER BY `revenueContractLineId` ASC, `accountPeriodId` ASC, `id` ASC",
+                Map.of(
+                        "revenueContractId", revenueContractId,
+                        "revenueContractVersion", revenueContractVersion),
+                rowMapper);
+    }
+
+    /**
+     * All revenue journal rows for the given line ids (retrospective release — single batch load).
+     */
+    public List<RevenueJournalEntriesRecord> findByRevenueContractLineIds(List<Long> revenueContractLineIds) {
+        if (revenueContractLineIds == null || revenueContractLineIds.isEmpty()) {
+            return List.of();
+        }
+        var params = new MapSqlParameterSource().addValue("revenueContractLineIds", revenueContractLineIds);
+        return jdbc.query(
+                SELECT + " WHERE `revenueContractLineId` IN (:revenueContractLineIds)"
+                        + " ORDER BY `revenueContractLineId` ASC, `accountPeriodId` ASC, `id` ASC",
+                params,
+                rowMapper);
+    }
+
+    /**
+     * Groups journal rows by {@code revenueContractLineId}, preserving load order within each line.
+     */
+    public Map<Long, List<RevenueJournalEntriesRecord>> groupByRevenueContractLineId(
+            List<RevenueJournalEntriesRecord> revenueJournalEntryRecords) {
+        Map<Long, List<RevenueJournalEntriesRecord>> byLineId = new LinkedHashMap<>();
+        if (revenueJournalEntryRecords == null) {
+            return Map.of();
+        }
+        for (RevenueJournalEntriesRecord revenueJournalEntryRecord : revenueJournalEntryRecords) {
+            Long revenueContractLineId = revenueJournalEntryRecord.getRevenueContractLineId();
+            if (revenueContractLineId == null) {
+                continue;
+            }
+            byLineId.computeIfAbsent(revenueContractLineId, ignored -> new ArrayList<>())
+                    .add(revenueJournalEntryRecord);
+        }
+        byLineId.replaceAll((lineId, lineRecords) -> List.copyOf(lineRecords));
+        return Map.copyOf(byLineId);
+    }
+
     private static final String RETROSPECTIVE_BY_LINE_AND_PERIOD =
             """
             SELECT
