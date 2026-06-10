@@ -1,5 +1,6 @@
 package com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries;
 
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import com.revrec.engine.common.persistence.PersistenceFlags;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,11 +26,11 @@ public final class RevenueJournalEntriesRecordMapper implements RowMapper<Revenu
         record.setJournalAccountPeriodId(rs.getObject(c++, Long.class));
         record.setDebitAccountName(rs.getString(c++));
         record.setCreditAccountName(rs.getString(c++));
-        record.setAmount(rs.getBigDecimal(c++));
+        record.setAmount(ChargebeeDecimal.of(rs.getBigDecimal(c++)));
         record.setCurrency(rs.getString(c++));
         record.setFunctionalCurrency(rs.getString(c++));
-        record.setExchangeRate(rs.getBigDecimal(c++));
-        record.setGlobalexchangeRate(rs.getBigDecimal(c++));
+        record.setExchangeRate(ChargebeeDecimal.of(rs.getBigDecimal(c++)));
+        record.setGlobalexchangeRate(ChargebeeDecimal.of(rs.getBigDecimal(c++)));
         record.setExchangeRateDate(rs.getObject(c++, java.time.LocalDate.class));
         record.setDebitAccount1(rs.getString(c++));
         record.setDebitAccount2(rs.getString(c++));

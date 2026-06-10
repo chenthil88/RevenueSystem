@@ -1,6 +1,6 @@
 package com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractAllocationDetails;
 
-import java.math.BigDecimal;
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -15,37 +15,39 @@ public interface RevenueContractAllocationDetails {
 
     Long revenueContractId();
 
-    BigDecimal extendedSspPrice();
+    ChargebeeDecimal extendedSspPrice();
 
     String allocationCurrency();
 
-    BigDecimal exchangeRate();
+    ChargebeeDecimal exchangeRate();
 
-    BigDecimal globalexchangeRate();
+    ChargebeeDecimal globalexchangeRate();
 
     LocalDate exchangeRateDate();
 
-    BigDecimal carveAmount();
+    ChargebeeDecimal carveAmount();
 
-    BigDecimal unreleasedCarveAmount();
+    ChargebeeDecimal unreleasedCarveAmount();
 
-    BigDecimal cumulativeReleasedAmount();
+    ChargebeeDecimal cumulativeReleasedAmount();
 
-    BigDecimal cumulativeUnReleasedAmount();
+    ChargebeeDecimal cumulativeUnReleasedAmount();
 
-    BigDecimal transactionPrice();
+    ChargebeeDecimal transactionPrice();
 
-    BigDecimal allocatedPrice();
+    ChargebeeDecimal postedPercentage();
 
-    BigDecimal netQuantity();
+    ChargebeeDecimal allocatedPrice();
 
-    BigDecimal term();
+    ChargebeeDecimal netQuantity();
+
+    ChargebeeDecimal term();
 
     Long bookId();
 
     Long organizationId();
 
-    BigDecimal transactionFunctionalPrice();
+    ChargebeeDecimal transactionFunctionalPrice();
 
     Long sspTemplateId();
 
@@ -53,17 +55,17 @@ public interface RevenueContractAllocationDetails {
 
     String sspType();
 
-    BigDecimal sspPrice();
+    ChargebeeDecimal sspPrice();
 
-    BigDecimal sspPercentage();
+    ChargebeeDecimal sspPercentage();
 
-    BigDecimal aboveSspPrice();
+    ChargebeeDecimal aboveSspPrice();
 
-    BigDecimal belowSspPrice();
+    ChargebeeDecimal belowSspPrice();
 
-    BigDecimal belowMidPercentage();
+    ChargebeeDecimal belowMidPercentage();
 
-    BigDecimal aboveMidPercentage();
+    ChargebeeDecimal aboveMidPercentage();
 
     Boolean isCancelOrder();
 
@@ -71,9 +73,9 @@ public interface RevenueContractAllocationDetails {
 
     Long createdPeriodId();
 
-    BigDecimal cumulativeCarveAmount();
+    ChargebeeDecimal cumulativeCarveAmount();
 
-    BigDecimal cumulativeAllocatedPrice();
+    ChargebeeDecimal cumulativeAllocatedPrice();
 
     String comments();
 

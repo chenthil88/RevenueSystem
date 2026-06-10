@@ -1,15 +1,17 @@
-package com.revrec.engine.domain.metadataservice.JournalAccountsSetup;
+package com.revrec.engine.common.metadataservice.JournalAccount;
 
 import java.time.LocalDateTime;
 
 /**
- * Row shape for {@link JournalAccountsSetupRecord}.
+ * Row shape for {@link JournalAccountRecord}.
  */
-public interface JournalAccountsSetup {
+public interface JournalAccount {
 
     Long id();
 
-    String tenantId();
+    default String tenantId() {
+        return null;
+    }
 
     String name();
 

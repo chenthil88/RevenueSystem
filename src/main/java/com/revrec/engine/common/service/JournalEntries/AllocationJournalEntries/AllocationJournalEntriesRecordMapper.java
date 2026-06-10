@@ -1,5 +1,6 @@
 package com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries;
 
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import com.revrec.engine.common.persistence.PersistenceFlags;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,11 +25,11 @@ public final class AllocationJournalEntriesRecordMapper implements RowMapper<All
         record.setJournalAccountPeriodId(rs.getObject("JournalAccountPeriodId", Long.class));
         record.setDebitAccountName(rs.getString("DebitAccountName"));
         record.setCreditAccountName(rs.getString("CreditAccountName"));
-        record.setAmount(rs.getBigDecimal("Amount"));
+        record.setAmount(ChargebeeDecimal.of(rs.getBigDecimal("Amount")));
         record.setCurrency(rs.getString("Currency"));
         record.setFunctionalCurrency(rs.getString("functionalCurrency"));
-        record.setExchangeRate(rs.getBigDecimal("exchangeRate"));
-        record.setGlobalexchangeRate(rs.getBigDecimal("globalexchangeRate"));
+        record.setExchangeRate(ChargebeeDecimal.of(rs.getBigDecimal("exchangeRate")));
+        record.setGlobalexchangeRate(ChargebeeDecimal.of(rs.getBigDecimal("globalexchangeRate")));
         record.setExchangeRateDate(rs.getObject("exchangeRateDate", java.time.LocalDate.class));
         record.setDebitAccount1(rs.getString("debitAccount1"));
         record.setDebitAccount2(rs.getString("debitAccount2"));

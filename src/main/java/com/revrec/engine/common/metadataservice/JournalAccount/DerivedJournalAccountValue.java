@@ -1,11 +1,11 @@
-package com.revrec.engine.common.metadataservice.JournalAccountsSetup;
+package com.revrec.engine.common.metadataservice.JournalAccount;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * Journal account value built from {@link JournalAccountsSetup} segment positions and an account-detail row.
+ * Journal account value built from {@link JournalAccount} segment positions and an account-detail row.
  * Use {@link #delimitedAccountValue()} to persist or split; use {@link #segment(int)} for a single position.
  */
 public record DerivedJournalAccountValue(

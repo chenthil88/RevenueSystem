@@ -1,0 +1,73 @@
+---
+description: Generic Java conventions for the RevenueSystem engine
+alwaysApply: true
+---
+
+# Revenue Engine Conventions
+
+## Naming and style
+
+- Use full, readable names for fields and dependencies (`revenueJournalEntriesService`, not `service`).
+- Follow existing suffixes: `*Record`, `*Service`, `*Strategy`, `*Context`, `*Constants`.
+- Prefer explicit names over abbreviations in methods and variables.
+
+## Domain models
+
+- Use **mutable classes with getters/setters** for workflow, batch, or line context objects built during processing.
+- Use **records** only for small immutable DTOs or value objects.
+- Build context objects in one place (typically a utility/builder method); populate all fields there, including derived values (currency, rounding precision, segments).
+- Do not unpack context fields into method parameters when they already live on the context. Pass the context and read fields inside the method.
+
+```java
+// ❌ BAD — redundant parameters already on context
+calculateAmount(lineContext, perPeriodAmount, totalAmount, currencyPrecision);
+
+// ✅ GOOD — only pass what varies per call
+calculateAmount(lineContext, perPeriodAmount);
+```
+
+## Package and class structure
+
+```
+{Feature}/
+├── {Feature}Service.java           # orchestrates the workflow
+├── {Feature}UtilityService.java    # shared helpers only
+├── {Feature}Constants.java
+├── model/                          # context and local DTOs
+└── strategy/                       # variant-specific logic (when applicable)
+    ├── {Feature}Strategy.java
+    └── *Strategy.java
+```
+
+- **Orchestrator** (`*Service`): loads data, loops, delegates, persists.
+- **Utility** (`*UtilityService`): shared setup, indexing, resolution, and context building — not variant-specific business rules.
+- **Strategy**: variant-specific formulas and record building; selected via `supports(...)` + `process(...)`.
+
+## Abstractions
+
+- Do **not** add thin wrapper methods around services the caller already has.
+- Do **not** extract one- or two-line helpers that should stay inline unless reused in multiple places.
+- Do **not** replace maintainable SQL aggregation with in-memory aggregation when SQL already exists in the service layer.
+- Minimize scope — only change what the task requires.
+
+## Workflow and batch context
+
+- Read cross-cutting workflow state (open period, tenant, batch id) from a dedicated context service or holder.
+- Initialize and publish context once at workflow start; avoid threading the same value through every layer as a duplicate source of truth.
+
+## Data access
+
+- Prefer composite accessors that return related records in one call over multiple separate lookups in a loop.
+- Avoid N+1: use batch queries + in-memory grouping (`findByIds`, `groupBy*`) instead of per-item fetches.
+- Keep aggregation SQL in the persistence/service layer; upper layers consume the results.
+
+## Financial amounts
+
+- Use `BigDecimal` with `RoundingMode.HALF_UP` for monetary calculations.
+- Resolve decimal precision from context (populated at build time from currency). Use `// TODO:` + a sensible default until currency setup is implemented.
+- In multi-period allocation loops, let the **last period absorb rounding remainder** rather than rounding it independently.
+
+## Comments
+
+- Document non-obvious business formulas in method Javadoc.
+- Use `// TODO:` for deferred integration points. Do not comment obvious code.

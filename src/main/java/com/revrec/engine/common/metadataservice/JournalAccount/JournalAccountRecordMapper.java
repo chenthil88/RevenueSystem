@@ -1,4 +1,4 @@
-package com.revrec.engine.domain.metadataservice.JournalAccountsSetup;
+package com.revrec.engine.common.metadataservice.JournalAccount;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -7,13 +7,13 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 /**
- * Maps JDBC columns to {@link JournalAccountsSetupRecord}.
+ * Maps JDBC columns to {@link JournalAccountRecord}.
  */
 @Component
-public final class JournalAccountsSetupRecordMapper implements RowMapper<JournalAccountsSetupRecord> {
+public final class JournalAccountRecordMapper implements RowMapper<JournalAccountRecord> {
 
     @Override
-    public @NonNull JournalAccountsSetupRecord mapRow(@NonNull ResultSet rs, int rowNum) throws SQLException {
+    public @NonNull JournalAccountRecord mapRow(@NonNull ResultSet rs, int rowNum) throws SQLException {
         int c = 1;
         var id = rs.getObject(c++, Long.class);
         var name = rs.getString(c++);
@@ -31,7 +31,7 @@ public final class JournalAccountsSetupRecordMapper implements RowMapper<Journal
         var isActive = rs.getObject(c++, Boolean.class);
         var createdAt = rs.getObject(c++, java.time.LocalDateTime.class);
         var updatedAt = rs.getObject(c++, java.time.LocalDateTime.class);
-        return new JournalAccountsSetupRecord(
+        return new JournalAccountRecord(
                 id,
                 name,
                 description,
@@ -47,7 +47,6 @@ public final class JournalAccountsSetupRecordMapper implements RowMapper<Journal
                 segmentPosition10,
                 isActive,
                 createdAt,
-                updatedAt
-        );
+                updatedAt);
     }
 }

@@ -1,14 +1,12 @@
-package com.revrec.engine.domain.metadataservice.JournalAccountsSetup;
+package com.revrec.engine.common.metadataservice.JournalAccount;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Row mapped from TiDB table `JournalAccountsSetup`.
+ * Row mapped from TiDB table {@code JournalAccountsSetup}.
  */
-public record JournalAccountsSetupRecord(
+public record JournalAccountRecord(
         Long id,
         String name,
         String description,
@@ -25,6 +23,6 @@ public record JournalAccountsSetupRecord(
         Boolean isActive,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
-) implements JournalAccountsSetup, Serializable {
+) implements JournalAccount, Serializable {
     public static final String TABLE_NAME = "JournalAccountsSetup";
 }

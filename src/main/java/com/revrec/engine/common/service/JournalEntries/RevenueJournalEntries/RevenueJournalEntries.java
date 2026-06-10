@@ -1,7 +1,7 @@
 package com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries;
 
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import com.revrec.engine.common.persistence.PersistenceFlags;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -28,15 +28,15 @@ public interface RevenueJournalEntries extends PersistenceFlags {
 
     String creditAccountName();
 
-    BigDecimal amount();
+    ChargebeeDecimal amount();
 
     String currency();
 
     String functionalCurrency();
 
-    BigDecimal exchangeRate();
+    ChargebeeDecimal exchangeRate();
 
-    BigDecimal globalexchangeRate();
+    ChargebeeDecimal globalexchangeRate();
 
     LocalDate exchangeRateDate();
 

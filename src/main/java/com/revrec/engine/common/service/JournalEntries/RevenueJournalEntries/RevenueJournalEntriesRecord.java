@@ -1,8 +1,8 @@
 package com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries;
 
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import com.revrec.engine.common.persistence.PersistenceFlags;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -24,11 +24,11 @@ public class RevenueJournalEntriesRecord implements RevenueJournalEntries, Seria
     private Long journalAccountPeriodId;
     private String debitAccountName;
     private String creditAccountName;
-    private BigDecimal amount;
+    private ChargebeeDecimal amount;
     private String currency;
     private String functionalCurrency;
-    private BigDecimal exchangeRate;
-    private BigDecimal globalexchangeRate;
+    private ChargebeeDecimal exchangeRate;
+    private ChargebeeDecimal globalexchangeRate;
     private LocalDate exchangeRateDate;
     private String debitAccount1;
     private String debitAccount2;
@@ -85,11 +85,11 @@ public class RevenueJournalEntriesRecord implements RevenueJournalEntries, Seria
             Long journalAccountPeriodId,
             String debitAccountName,
             String creditAccountName,
-            BigDecimal amount,
+            ChargebeeDecimal amount,
             String currency,
             String functionalCurrency,
-            BigDecimal exchangeRate,
-            BigDecimal globalexchangeRate,
+            ChargebeeDecimal exchangeRate,
+            ChargebeeDecimal globalexchangeRate,
             LocalDate exchangeRateDate,
             String debitAccount1,
             String debitAccount2,
@@ -210,16 +210,16 @@ public class RevenueJournalEntriesRecord implements RevenueJournalEntries, Seria
     public void setDebitAccountName(String debitAccountName) { this.debitAccountName = debitAccountName; }
     public String getCreditAccountName() { return creditAccountName; }
     public void setCreditAccountName(String creditAccountName) { this.creditAccountName = creditAccountName; }
-    public BigDecimal getAmount() { return amount; }
-    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public ChargebeeDecimal getAmount() { return amount; }
+    public void setAmount(ChargebeeDecimal amount) { this.amount = amount; }
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
     public String getFunctionalCurrency() { return functionalCurrency; }
     public void setFunctionalCurrency(String functionalCurrency) { this.functionalCurrency = functionalCurrency; }
-    public BigDecimal getExchangeRate() { return exchangeRate; }
-    public void setExchangeRate(BigDecimal exchangeRate) { this.exchangeRate = exchangeRate; }
-    public BigDecimal getGlobalexchangeRate() { return globalexchangeRate; }
-    public void setGlobalexchangeRate(BigDecimal globalexchangeRate) { this.globalexchangeRate = globalexchangeRate; }
+    public ChargebeeDecimal getExchangeRate() { return exchangeRate; }
+    public void setExchangeRate(ChargebeeDecimal exchangeRate) { this.exchangeRate = exchangeRate; }
+    public ChargebeeDecimal getGlobalexchangeRate() { return globalexchangeRate; }
+    public void setGlobalexchangeRate(ChargebeeDecimal globalexchangeRate) { this.globalexchangeRate = globalexchangeRate; }
     public LocalDate getExchangeRateDate() { return exchangeRateDate; }
     public void setExchangeRateDate(LocalDate exchangeRateDate) { this.exchangeRateDate = exchangeRateDate; }
     public String getDebitAccount1() { return debitAccount1; }
@@ -316,11 +316,11 @@ public class RevenueJournalEntriesRecord implements RevenueJournalEntries, Seria
     @Override public Long journalAccountPeriodId() { return journalAccountPeriodId; }
     @Override public String debitAccountName() { return debitAccountName; }
     @Override public String creditAccountName() { return creditAccountName; }
-    @Override public BigDecimal amount() { return amount; }
+    @Override public ChargebeeDecimal amount() { return amount; }
     @Override public String currency() { return currency; }
     @Override public String functionalCurrency() { return functionalCurrency; }
-    @Override public BigDecimal exchangeRate() { return exchangeRate; }
-    @Override public BigDecimal globalexchangeRate() { return globalexchangeRate; }
+    @Override public ChargebeeDecimal exchangeRate() { return exchangeRate; }
+    @Override public ChargebeeDecimal globalexchangeRate() { return globalexchangeRate; }
     @Override public LocalDate exchangeRateDate() { return exchangeRateDate; }
     @Override public String debitAccount1() { return debitAccount1; }
     @Override public String debitAccount2() { return debitAccount2; }

@@ -1,18 +1,18 @@
 package com.revrec.engine.domain.revenuecontractbatchcollection.AllocationRelease.strategy;
 
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries.AllocationJournalEntriesRecord;
 import com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries.AllocationJournalEntriesService;
 import com.revrec.engine.common.service.JournalEntries.RevenueJournalEntries.RevenueJournalEntriesService;
 import com.revrec.engine.domain.revenuecontractbatchcollection.AllocationRelease.AllocationRevenueReleaseUtilityService;
-import com.revrec.engine.domain.revenuecontractbatchcollection.AllocationRelease.model.AllocationReleasePeriodLoop;
 import com.revrec.engine.domain.revenuecontractbatchcollection.AllocationRelease.model.AllocationRevenueReleaseLineContext;
 import com.revrec.engine.domain.revenuecontractbatchcollection.context.RevenueContractBatchContextService;
 import com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries.RevenueJournalEntriesPerPeriod;
 import com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries.RevenueJournalEntriesRecord;
 import com.revrec.engine.domain.service.RevenueContractHeader.RevenueContractHeaderRecord;
+import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractAllocationDetails.RevenueContractAllocationDetailsRecord;
 import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractOrderLineRecords;
 import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractOrderRecords;
-import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,9 +55,6 @@ public class RetrospectiveAllocationRevenueReleaseStrategy implements Allocation
         Map<Long, List<RevenueJournalEntriesPerPeriod>> retrospectiveRevenueJournalEntriesByLine =
                 revenueJournalEntriesService.getRetrospectiveJournalEntries(
                         revenueContractLineIds, openAccountPeriodId);
-        Map<Long, List<RevenueJournalEntriesRecord>> revenueJournalEntryRecordsByLine =
-                revenueJournalEntriesService.groupByRevenueContractLineId(
-                        revenueJournalEntriesService.findByRevenueContractLineIds(revenueContractLineIds));
 
         List<AllocationJournalEntriesRecord> allocationReleaseJournalEntriesToInsert = new ArrayList<>();
 
@@ -65,8 +62,6 @@ public class RetrospectiveAllocationRevenueReleaseStrategy implements Allocation
                 retrospectiveRevenueJournalEntriesByLine.entrySet()) {
             Long revenueContractLineId = lineEntry.getKey();
             List<RevenueJournalEntriesPerPeriod> revenueJournalEntriesPerPeriod = lineEntry.getValue();
-            List<RevenueJournalEntriesRecord> revenueJournalEntryRecords =
-                    revenueJournalEntryRecordsByLine.getOrDefault(revenueContractLineId, List.of());
 
             RevenueContractOrderLineRecords revenueContractOrderLineRecords =
                     revenueContractOrderRecords.getLineRecords(revenueContractLineId).orElse(null);
@@ -82,8 +77,7 @@ public class RetrospectiveAllocationRevenueReleaseStrategy implements Allocation
 
             allocationReleaseJournalEntriesToInsert.addAll(buildAllocationReleaseJournalEntries(
                     allocationRevenueReleaseLineContext,
-                    revenueJournalEntryRecords,
-                    revenueJournalEntriesPerPeriod,
+                    revenueContractOrderLineRecords.getRevenueContractAllocationDetailsRecord(),
                     openAccountPeriodId));
         }
 
@@ -98,62 +92,62 @@ public class RetrospectiveAllocationRevenueReleaseStrategy implements Allocation
      */
     private List<AllocationJournalEntriesRecord> buildAllocationReleaseJournalEntries(
             AllocationRevenueReleaseLineContext allocationRevenueReleaseLineContext,
-            List<RevenueJournalEntriesRecord> revenueJournalEntryRecords,
-            List<RevenueJournalEntriesPerPeriod> revenueJournalEntriesPerPeriod,
+            RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord,
             Long openAccountPeriodId) {
-        AllocationReleasePeriodLoop allocationReleasePeriodLoop = allocationRevenueReleaseUtilityService
-                .prepareAllocationReleasePeriodLoop(revenueJournalEntryRecords)
-                .orElse(null);
-        if (allocationReleasePeriodLoop == null) {
+        List<RevenueJournalEntriesPerPeriod> revenueJournalEntriesPerPeriod =
+                allocationRevenueReleaseLineContext.getRevenueJournalEntriesPerPeriod();
+        if (revenueJournalEntriesPerPeriod.isEmpty()) {
             return List.of();
         }
 
-        BigDecimal totalUnreleasedCarveAmount = allocationRevenueReleaseLineContext.getTotalUnreleasedCarveAmount();
-        BigDecimal transactionPrice = allocationRevenueReleaseUtilityService.nullToZero(
-                allocationRevenueReleaseLineContext
-                        .getRevenueContractAllocationDetailsRecord()
-                        .getTransactionPrice());
+        Long lastAccountPeriodId = revenueJournalEntriesPerPeriod
+                .get(revenueJournalEntriesPerPeriod.size() - 1)
+                .periodId();
 
-        BigDecimal sumAllocationPerPeriodRevenue = BigDecimal.ZERO;
+        ChargebeeDecimal sumAllocationPerPeriodRevenue = ChargebeeDecimal.ZERO;
         List<AllocationJournalEntriesRecord> allocationReleaseJournalEntries = new ArrayList<>();
 
-        for (Long accountPeriodId : allocationReleasePeriodLoop.getSortedAccountPeriodIds()) {
-            RevenueJournalEntriesRecord revenueJournalEntryRecord =
-                    allocationReleasePeriodLoop.getRevenueJournalEntryForPeriod(accountPeriodId);
-            BigDecimal perPeriodReleaseAmount = allocationRevenueReleaseUtilityService.calculatePerPeriodReleaseAmount(
-                    allocationRevenueReleaseLineContext,
-                    revenueJournalEntryRecord,
-                    revenueJournalEntriesPerPeriod);
+        for (RevenueJournalEntriesPerPeriod revenueJournalEntryPerPeriod : revenueJournalEntriesPerPeriod) {
+            Long accountPeriodId = revenueJournalEntryPerPeriod.periodId();
+            ChargebeeDecimal perPeriodReleaseAmount = ChargebeeDecimal.nullToZero(
+                    revenueJournalEntryPerPeriod.amount().abs());
 
-            BigDecimal allocationPerPeriodRevenue;
-            if (accountPeriodId.equals(allocationReleasePeriodLoop.getLastAccountPeriodId())) {
-                allocationPerPeriodRevenue = totalUnreleasedCarveAmount.subtract(sumAllocationPerPeriodRevenue);
+            ChargebeeDecimal allocationPerPeriodRevenue;
+            if (accountPeriodId.equals(lastAccountPeriodId)) {
+                allocationPerPeriodRevenue = allocationRevenueReleaseLineContext
+                        .getTotalUnreleasedCarveAmount()
+                        .subtract(sumAllocationPerPeriodRevenue);
             } else {
                 allocationPerPeriodRevenue = calculateAllocationPerPeriodRevenue(
-                        perPeriodReleaseAmount, transactionPrice, totalUnreleasedCarveAmount);
+                        allocationRevenueReleaseLineContext, perPeriodReleaseAmount);
                 sumAllocationPerPeriodRevenue =
                         sumAllocationPerPeriodRevenue.add(allocationPerPeriodRevenue);
             }
 
-            allocationReleaseJournalEntries.add(allocationJournalEntriesService.prepareAllocationReleaseJournalEntry(
-                    allocationRevenueReleaseLineContext,
-                    revenueJournalEntryRecord,
+            allocationReleaseJournalEntries.add(allocationJournalEntriesService.prepareAllocationJournalEntry(
+                    revenueContractAllocationDetailsRecord,
+                    allocationRevenueReleaseLineContext.getRevenueContractVersion(),
+                    openAccountPeriodId,
                     allocationPerPeriodRevenue,
-                    openAccountPeriodId));
+                    accountPeriodId,
+                    allocationRevenueReleaseLineContext));
         }
 
         return allocationReleaseJournalEntries;
     }
 
-    private static BigDecimal calculateAllocationPerPeriodRevenue(
-            BigDecimal perPeriodReleaseAmount,
-            BigDecimal transactionPrice,
-            BigDecimal totalUnreleasedCarveAmount) {
-        if (transactionPrice.compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO;
+    private ChargebeeDecimal calculateAllocationPerPeriodRevenue(
+            AllocationRevenueReleaseLineContext allocationRevenueReleaseLineContext,
+            ChargebeeDecimal perPeriodReleaseAmount) {
+        ChargebeeDecimal transactionPrice = ChargebeeDecimal.nullToZero(
+                allocationRevenueReleaseLineContext.getTransactionPrice().abs());
+        if (transactionPrice.isEqual(ChargebeeDecimal.ZERO)) {
+            return perPeriodReleaseAmount.isEqual(ChargebeeDecimal.ONE) ? ChargebeeDecimal.ZERO : perPeriodReleaseAmount;
         }
-        BigDecimal perPeriodRevenueReleasedPercentage = perPeriodReleaseAmount.divide(
-                transactionPrice, 10, RoundingMode.HALF_UP);
-        return perPeriodRevenueReleasedPercentage.multiply(totalUnreleasedCarveAmount);
+        int roundingPrecision = allocationRevenueReleaseLineContext.getRoundingPrecision();
+        ChargebeeDecimal perPeriodRevenueReleasedPercentage = perPeriodReleaseAmount.divide(
+                transactionPrice, roundingPrecision, RoundingMode.HALF_UP);
+        return perPeriodRevenueReleasedPercentage.multiply(
+                allocationRevenueReleaseLineContext.getTotalUnreleasedCarveAmount());
     }
 }

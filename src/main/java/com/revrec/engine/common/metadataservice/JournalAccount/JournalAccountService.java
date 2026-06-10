@@ -1,10 +1,9 @@
-package com.revrec.engine.common.metadataservice.JournalAccountsSetup;
+package com.revrec.engine.common.metadataservice.JournalAccount;
 
-import com.revrec.engine.domain.metadataservice.JournalAccountsSetup.JournalAccountsSetupRecord;
 import com.revrec.engine.common.accountdetails.AccountDetailsRecord;
 import com.revrec.engine.integration.nosql.NoSqlRecordServer;
-import com.revrec.engine.domain.metadataservice.JournalAccountsSetup.JournalAccountsSetupRecordMapper;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -16,16 +15,16 @@ import org.springframework.stereotype.Service;
  * TiDB-backed persistence with optional Redis materialization.
  */
 @Service
-public class JournalAccountsSetupService {
+public class JournalAccountService {
 
     private final NamedParameterJdbcTemplate jdbc;
-    private final JournalAccountsSetupRecordMapper rowMapper;
+    private final JournalAccountRecordMapper rowMapper;
     private final NoSqlRecordServer noSqlRecordServer;
-    private volatile Map<String, JournalAccountsSetupRecord> cachedByName;
+    private volatile Map<String, JournalAccountRecord> cachedByName;
 
-    public JournalAccountsSetupService(
+    public JournalAccountService(
             NamedParameterJdbcTemplate jdbc,
-            JournalAccountsSetupRecordMapper rowMapper,
+            JournalAccountRecordMapper rowMapper,
             NoSqlRecordServer noSqlRecordServer) {
         this.jdbc = jdbc;
         this.rowMapper = rowMapper;
@@ -34,27 +33,35 @@ public class JournalAccountsSetupService {
 
     private static final String SELECT =
             "SELECT `id`, `name`, `description`, `SegmentPosition1`, `SegmentPosition2`, `SegmentPosition3`, `SegmentPosition4`, `SegmentPosition5`, `SegmentPosition6`, `SegmentPosition7`, `SegmentPosition8`, `SegmentPosition9`, `SegmentPosition10`, `isActive`, `createdAt`, `updatedAt` FROM `JournalAccountsSetup`";
-    public Optional<JournalAccountsSetupRecord> findById(Long id) {
+
+    public Optional<JournalAccountRecord> findById(Long id) {
         var list = jdbc.query(SELECT + " WHERE `id` = :id", Map.of("id", id), rowMapper);
         return list.stream().findFirst();
     }
-    public Optional<JournalAccountsSetupRecord> findByIdCached(Long id) {
+
+    public Optional<JournalAccountRecord> findByIdCached(Long id) {
         return noSqlRecordServer
-                .get(JournalAccountsSetupRecord.TABLE_NAME, String.valueOf(id), JournalAccountsSetupRecord.class)
+                .get(JournalAccountRecord.TABLE_NAME, String.valueOf(id), JournalAccountRecord.class)
                 .or(() -> findById(id).map(row -> {
                     noSqlRecordServer.put(
-                            JournalAccountsSetupRecord.TABLE_NAME, String.valueOf(row.id()), row);
+                            JournalAccountRecord.TABLE_NAME, String.valueOf(row.id()), row);
                     return row;
                 }));
     }
+
+    public List<JournalAccountRecord> findAll(int limit, int offset) {
+        return jdbc.query(SELECT + " LIMIT :limit OFFSET :offset",
+                Map.of("limit", limit, "offset", offset), rowMapper);
+    }
+
     /**
      * Loads all journal account setup rows (metadata; no pagination), keyed by {@code name}.
      */
-    public Map<String, JournalAccountsSetupRecord> findAllByName() {
+    public Map<String, JournalAccountRecord> findAllByName() {
         return jdbc.query(SELECT, Map.of(), rowMapper).stream()
                 .filter(row -> row.name() != null && !row.name().isBlank())
                 .collect(Collectors.toMap(
-                        JournalAccountsSetupRecord::name,
+                        JournalAccountRecord::name,
                         Function.identity(),
                         (existing, duplicate) -> {
                             throw new IllegalStateException(
@@ -64,20 +71,21 @@ public class JournalAccountsSetupService {
     }
 
     /**
+     * Builds the journal account string for {@code journalAccountType} using setup segment positions.
+     */
+    public DerivedJournalAccountValue deriveJournalAccountValue(
+            JournalAccountType journalAccountType, AccountDetailsRecord accountDetails) {
+        return deriveJournalAccountValue(journalAccountType.accountName(), accountDetails);
+    }
+
+    /**
      * Builds the journal account string for {@code journalAccountName} using setup segment positions.
      * Each position is either a segment field name (e.g. {@code RevenueSegment1}) read from
      * {@code accountDetails}, or a literal constant (e.g. {@code 200001}).
-     * <p>
-     * Combined value: {@link DerivedJournalAccountValue#delimitedAccountValue()} using
-     * {@link DerivedJournalAccountValue#DELIMITER} ({@code |}). Split with
-     * {@link DerivedJournalAccountValue#splitDelimitedAccountValue()} or map
-     * {@link DerivedJournalAccountValue#segment(int)} (1–10) into separate columns.
-     *
-     * @param accountDetails order or billing account-details row implementing {@link AccountDetailsRecord}
      */
     public DerivedJournalAccountValue deriveJournalAccountValue(
             String journalAccountName, AccountDetailsRecord accountDetails) {
-        JournalAccountsSetupRecord setup = requireSetup(journalAccountName);
+        JournalAccountRecord setup = requireSetup(journalAccountName);
         return new DerivedJournalAccountValue(
                 journalAccountName,
                 JournalAccountSegmentResolver.resolve(setup.segmentPosition1(), accountDetails),
@@ -92,16 +100,16 @@ public class JournalAccountsSetupService {
                 JournalAccountSegmentResolver.resolve(setup.segmentPosition10(), accountDetails));
     }
 
-    private JournalAccountsSetupRecord requireSetup(String journalAccountName) {
-        JournalAccountsSetupRecord setup = cachedSetupByName().get(journalAccountName);
+    private JournalAccountRecord requireSetup(String journalAccountName) {
+        JournalAccountRecord setup = cachedSetupByName().get(journalAccountName);
         if (setup == null) {
-            throw new IllegalArgumentException("JournalAccountsSetup not found for name: " + journalAccountName);
+            throw new IllegalArgumentException("JournalAccount not found for name: " + journalAccountName);
         }
         return setup;
     }
 
-    private Map<String, JournalAccountsSetupRecord> cachedSetupByName() {
-        Map<String, JournalAccountsSetupRecord> local = cachedByName;
+    private Map<String, JournalAccountRecord> cachedSetupByName() {
+        Map<String, JournalAccountRecord> local = cachedByName;
         if (local == null) {
             synchronized (this) {
                 local = cachedByName;

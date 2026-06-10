@@ -1,8 +1,8 @@
 package com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries;
 
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import com.revrec.engine.common.persistence.PersistenceFlags;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -24,11 +24,11 @@ public class AllocationJournalEntriesRecord implements AllocationJournalEntries,
     private Long journalAccountPeriodId;
     private String debitAccountName;
     private String creditAccountName;
-    private BigDecimal amount;
+    private ChargebeeDecimal amount;
     private String currency;
     private String functionalCurrency;
-    private BigDecimal exchangeRate;
-    private BigDecimal globalexchangeRate;
+    private ChargebeeDecimal exchangeRate;
+    private ChargebeeDecimal globalexchangeRate;
     private LocalDate exchangeRateDate;
     private String debitAccount1;
     private String debitAccount2;
@@ -93,16 +93,16 @@ public class AllocationJournalEntriesRecord implements AllocationJournalEntries,
     public void setDebitAccountName(String debitAccountName) { this.debitAccountName = debitAccountName; }
     @Override public String getCreditAccountName() { return creditAccountName; }
     public void setCreditAccountName(String creditAccountName) { this.creditAccountName = creditAccountName; }
-    @Override public BigDecimal getAmount() { return amount; }
-    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    @Override public ChargebeeDecimal getAmount() { return amount; }
+    public void setAmount(ChargebeeDecimal amount) { this.amount = amount; }
     @Override public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
     @Override public String getFunctionalCurrency() { return functionalCurrency; }
     public void setFunctionalCurrency(String functionalCurrency) { this.functionalCurrency = functionalCurrency; }
-    @Override public BigDecimal getExchangeRate() { return exchangeRate; }
-    public void setExchangeRate(BigDecimal exchangeRate) { this.exchangeRate = exchangeRate; }
-    @Override public BigDecimal getGlobalexchangeRate() { return globalexchangeRate; }
-    public void setGlobalexchangeRate(BigDecimal globalexchangerate) { this.globalexchangeRate = globalexchangerate; }
+    @Override public ChargebeeDecimal getExchangeRate() { return exchangeRate; }
+    public void setExchangeRate(ChargebeeDecimal exchangeRate) { this.exchangeRate = exchangeRate; }
+    @Override public ChargebeeDecimal getGlobalexchangeRate() { return globalexchangeRate; }
+    public void setGlobalexchangeRate(ChargebeeDecimal globalexchangerate) { this.globalexchangeRate = globalexchangerate; }
     @Override public LocalDate getExchangeRateDate() { return exchangeRateDate; }
     public void setExchangeRateDate(LocalDate exchangeRateDate) { this.exchangeRateDate = exchangeRateDate; }
     @Override public String getDebitAccount1() { return debitAccount1; }

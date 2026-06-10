@@ -1,4 +1,4 @@
-package com.revrec.engine.common.metadataservice.JournalAccountsSetup;
+package com.revrec.engine.common.metadataservice.JournalAccount;
 
 import com.revrec.engine.common.accountdetails.AccountDetailsRecord;
 import java.util.Set;

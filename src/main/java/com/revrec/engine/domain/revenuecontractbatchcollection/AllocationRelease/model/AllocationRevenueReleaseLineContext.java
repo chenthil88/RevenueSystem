@@ -1,9 +1,9 @@
 package com.revrec.engine.domain.revenuecontractbatchcollection.AllocationRelease.model;
 
-import com.revrec.engine.common.metadataservice.JournalAccountsSetup.DerivedJournalAccountValue;
+import com.revrec.engine.common.math.ChargebeeDecimal;
+import com.revrec.engine.common.metadataservice.JournalAccount.DerivedJournalAccountValue;
 import com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries.RevenueJournalEntriesPerPeriod;
-import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractAllocationDetails.RevenueContractAllocationDetailsRecord;
-import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -13,11 +13,15 @@ public class AllocationRevenueReleaseLineContext {
 
     private Long revenueContractLineId;
     private Long revenueContractVersion;
-    private BigDecimal totalUnreleasedCarveAmount;
-    private RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord;
+    private ChargebeeDecimal totalUnreleasedCarveAmount;
+    private ChargebeeDecimal transactionPrice;
+    private ChargebeeDecimal postedPercentage;
     private DerivedJournalAccountValue debitAccountSegments;
     private DerivedJournalAccountValue creditAccountSegments;
     private List<RevenueJournalEntriesPerPeriod> revenueJournalEntriesPerPeriod;
+    private String allocationCurrency;
+    private int roundingPrecision;
+    private boolean isInitialEntry = false;
 
     public AllocationRevenueReleaseLineContext() {}
 
@@ -37,21 +41,28 @@ public class AllocationRevenueReleaseLineContext {
         this.revenueContractVersion = revenueContractVersion;
     }
 
-    public BigDecimal getTotalUnreleasedCarveAmount() {
+    public ChargebeeDecimal getTotalUnreleasedCarveAmount() {
         return totalUnreleasedCarveAmount;
     }
 
-    public void setTotalUnreleasedCarveAmount(BigDecimal totalUnreleasedCarveAmount) {
+    public void setTotalUnreleasedCarveAmount(ChargebeeDecimal totalUnreleasedCarveAmount) {
         this.totalUnreleasedCarveAmount = totalUnreleasedCarveAmount;
     }
 
-    public RevenueContractAllocationDetailsRecord getRevenueContractAllocationDetailsRecord() {
-        return revenueContractAllocationDetailsRecord;
+    public ChargebeeDecimal getTransactionPrice() {
+        return transactionPrice;
     }
 
-    public void setRevenueContractAllocationDetailsRecord(
-            RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord) {
-        this.revenueContractAllocationDetailsRecord = revenueContractAllocationDetailsRecord;
+    public void setTransactionPrice(ChargebeeDecimal transactionPrice) {
+        this.transactionPrice = transactionPrice;
+    }
+
+    public ChargebeeDecimal getPostedPercentage() {
+        return postedPercentage;
+    }
+
+    public void setPostedPercentage(ChargebeeDecimal postedPercentage) {
+        this.postedPercentage = postedPercentage;
     }
 
     public DerivedJournalAccountValue getDebitAccountSegments() {
@@ -75,7 +86,39 @@ public class AllocationRevenueReleaseLineContext {
     }
 
     public void setRevenueJournalEntriesPerPeriod(List<RevenueJournalEntriesPerPeriod> revenueJournalEntriesPerPeriod) {
-        this.revenueJournalEntriesPerPeriod =
-                revenueJournalEntriesPerPeriod == null ? List.of() : List.copyOf(revenueJournalEntriesPerPeriod);
+        if (revenueJournalEntriesPerPeriod == null || revenueJournalEntriesPerPeriod.isEmpty()) {
+            this.revenueJournalEntriesPerPeriod = List.of();
+            return;
+        }
+        this.revenueJournalEntriesPerPeriod = revenueJournalEntriesPerPeriod.stream()
+                .sorted(Comparator.comparing(RevenueJournalEntriesPerPeriod::periodId))
+                .toList();
+    }
+
+    public String getAllocationCurrency() {
+        return allocationCurrency;
+    }
+
+    public void setAllocationCurrency(String allocationCurrency) {
+        this.allocationCurrency = allocationCurrency;
+    }
+
+    /**
+     * Decimal places for amount rounding on this line (derived from {@link #allocationCurrency}).
+     */
+    public int getRoundingPrecision() {
+        return roundingPrecision;
+    }
+
+    public void setRoundingPrecision(int roundingPrecision) {
+        this.roundingPrecision = roundingPrecision;
+    }
+
+    public boolean isInitialEntry() {
+        return isInitialEntry;
+    }
+
+    public void setInitialEntry(boolean initialEntry) {
+        isInitialEntry = initialEntry;
     }
 }

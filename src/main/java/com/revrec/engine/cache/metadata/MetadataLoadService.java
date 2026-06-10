@@ -3,7 +3,7 @@ package com.revrec.engine.cache.metadata;
 import com.revrec.engine.common.metadataservice.Calendar.CalendarService;
 import com.revrec.engine.common.metadataservice.Currency.CurrencyService;
 import com.revrec.engine.common.metadataservice.CurrentOpenPeriod.CurrentOpenPeriodService;
-import com.revrec.engine.common.metadataservice.JournalAccountsSetup.JournalAccountsSetupService;
+import com.revrec.engine.common.metadataservice.JournalAccount.JournalAccountService;
 import com.revrec.engine.common.metadataservice.PerformanceObligationRule.PerformanceObligationRuleService;
 import com.revrec.engine.common.metadataservice.PerformanceObligationRuleFilter.PerformanceObligationRuleFilterService;
 import com.revrec.engine.common.metadataservice.PerformanceObligationTemplate.PerformanceObligationTemplateService;
@@ -33,7 +33,7 @@ public class MetadataLoadService {
     private final CalendarService calendarService;
     private final CurrencyService currencyService;
     private final CurrentOpenPeriodService currentOpenPeriodService;
-    private final JournalAccountsSetupService journalAccountsSetupService;
+    private final JournalAccountService journalAccountService;
     private final PerformanceObligationRuleService performanceObligationRuleService;
     private final PerformanceObligationRuleFilterService performanceObligationRuleFilterService;
     private final PerformanceObligationTemplateService performanceObligationTemplateService;
@@ -50,7 +50,7 @@ public class MetadataLoadService {
             CalendarService calendarService,
             CurrencyService currencyService,
             CurrentOpenPeriodService currentOpenPeriodService,
-            JournalAccountsSetupService journalAccountsSetupService,
+            JournalAccountService journalAccountService,
             PerformanceObligationRuleService performanceObligationRuleService,
             PerformanceObligationRuleFilterService performanceObligationRuleFilterService,
             PerformanceObligationTemplateService performanceObligationTemplateService,
@@ -65,7 +65,7 @@ public class MetadataLoadService {
         this.calendarService = calendarService;
         this.currencyService = currencyService;
         this.currentOpenPeriodService = currentOpenPeriodService;
-        this.journalAccountsSetupService = journalAccountsSetupService;
+        this.journalAccountService = journalAccountService;
         this.performanceObligationRuleService = performanceObligationRuleService;
         this.performanceObligationRuleFilterService = performanceObligationRuleFilterService;
         this.performanceObligationTemplateService = performanceObligationTemplateService;
@@ -94,7 +94,7 @@ public class MetadataLoadService {
             totalCached += cacheTable("Calendar", calendarService.findAll(BATCH_SIZE, 0), tenantId);
             totalCached += cacheTable("Currency", currencyService.findAll(BATCH_SIZE, 0), tenantId);
             totalCached += cacheTable("CurrentOpenPeriod", currentOpenPeriodService.findAll(BATCH_SIZE, 0), tenantId);
-            totalCached += cacheTable("JournalAccountsSetup", journalAccountsSetupService.findAll(BATCH_SIZE, 0), tenantId);
+            totalCached += cacheTable("JournalAccountsSetup", journalAccountService.findAll(BATCH_SIZE, 0), tenantId);
             totalCached += cacheTable("PerformanceObligationRule", performanceObligationRuleService.findAll(BATCH_SIZE, 0), tenantId);
             totalCached += cacheTable("PerformanceObligationRuleFilter", performanceObligationRuleFilterService.findAll(BATCH_SIZE, 0), tenantId);
             totalCached += cacheTable("PerformanceObligationTemplate", performanceObligationTemplateService.findAll(BATCH_SIZE, 0), tenantId);

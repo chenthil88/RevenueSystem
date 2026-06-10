@@ -1,13 +1,18 @@
 package com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries;
 
-import com.revrec.engine.common.metadataservice.JournalAccountsSetup.DerivedJournalAccountValue;
+import com.revrec.engine.common.math.ChargebeeDecimal;
+import com.revrec.engine.common.metadataservice.JournalAccount.DerivedJournalAccountValue;
 import com.revrec.engine.common.persistence.PersistenceFlags;
+import com.revrec.engine.common.persistence.SequenceIdGenerator;
 import com.revrec.engine.domain.revenuecontractbatchcollection.AllocationRelease.model.AllocationRevenueReleaseLineContext;
-import com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries.RevenueJournalEntriesRecord;
 import com.revrec.engine.integration.nosql.NoSqlRecordServer;
+import com.revrec.engine.domain.service.RevenueContractHeader.RevenueContractHeaderRecord;
 import com.revrec.engine.domain.service.RevenueContractOrder.RevenueContractAllocationDetails.RevenueContractAllocationDetailsRecord;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -32,8 +37,6 @@ public class AllocationJournalEntriesService {
         this.rowMapper = rowMapper;
         this.noSqlRecordServer = noSqlRecordServer;
     }
-
-    private static final String NEXT_ID = "SELECT NEXTVAL(allocation_journal_entries_id_seq)";
 
     private static final String INSERT =
             """
@@ -86,12 +89,55 @@ public class AllocationJournalEntriesService {
                 Map.of("limit", limit, "offset", offset), rowMapper);
     }
 
-    public long nextId() {
-        Long id = jdbc.queryForObject(NEXT_ID, Map.of(), Long.class);
-        if (id == null) {
-            throw new IllegalStateException("NEXTVAL(allocation_journal_entries_id_seq) returned null");
+    /**
+     * All allocation journal rows for a contract version.
+     */
+    public List<AllocationJournalEntriesRecord> findByRevenueContractIdAndVersion(
+            Long revenueContractId, Long revenueContractVersion) {
+        if (revenueContractId == null || revenueContractVersion == null) {
+            return List.of();
         }
-        return id;
+        return jdbc.query(
+                SELECT
+                        + " WHERE `revenueContractId` = :revenueContractId"
+                        + " AND `revenueContractVersion` = :revenueContractVersion"
+                        + " ORDER BY `revenueContractLineId` ASC, `accountPeriodId` ASC, `id` ASC",
+                Map.of(
+                        "revenueContractId", revenueContractId,
+                        "revenueContractVersion", revenueContractVersion),
+                rowMapper);
+    }
+
+    private static final String ALLOCATION_SCHEDULE_BY_RC_ID =
+            """
+            SELECT
+                `revenueContractLineId`,
+                `IsInitialEntry`,
+                SUM(`Amount`) AS amount
+            FROM `AllocationJournalEntries`
+            WHERE `revenueContractId` = :revenueContractId
+            GROUP BY `revenueContractLineId`, `IsInitialEntry`
+            ORDER BY `revenueContractLineId` ASC
+            """;
+
+    /**
+     * Aggregated allocation journal amounts per line, split by initial vs release entry.
+     */
+    public Map<Long, List<AllocationScheduleByRcId>> getAllocationScheduleByRcId(
+            RevenueContractHeaderRecord revenueContractHeaderRecord) {
+        Objects.requireNonNull(revenueContractHeaderRecord, "revenueContractHeaderRecord");
+        Long revenueContractId = revenueContractHeaderRecord.getRevenueContractId();
+        Objects.requireNonNull(revenueContractId, "revenueContractId");
+
+        Map<Long, List<AllocationScheduleByRcId>> byLineId = new LinkedHashMap<>();
+        var params = new MapSqlParameterSource().addValue("revenueContractId", revenueContractId);
+
+        aggregateAllocationScheduleByRcId(ALLOCATION_SCHEDULE_BY_RC_ID, params, byLineId);
+        return immutableScheduleByLineId(byLineId);
+    }
+
+    public long nextId() {
+        return SequenceIdGenerator.nextId();
     }
 
     public void insertAll(List<AllocationJournalEntriesRecord> records) {
@@ -100,12 +146,7 @@ public class AllocationJournalEntriesService {
         }
         SqlParameterSource[] batch = records.stream()
                 .filter(PersistenceFlags::shouldInsert)
-                .map(record -> {
-                    if (record.getId() == null) {
-                        record.setId(nextId());
-                    }
-                    return toInsertParameters(record);
-                })
+                .map(AllocationJournalEntriesService::toInsertParameters)
                 .toArray(SqlParameterSource[]::new);
         if (batch.length == 0) {
             return;
@@ -114,80 +155,88 @@ public class AllocationJournalEntriesService {
     }
 
     /**
-     * Prepares an {@link AllocationJournalEntriesRecord} from a revenue contract allocation record.
+     * Prepares an {@link AllocationJournalEntriesRecord} for initial carve or per-period release.
      *
-     * <p>Fields that cannot be derived from the allocation record are left as {@code null} and must
-     * be populated by upstream services (e.g. account segments, period ids, posting flags).
+     * <p>Initial entry: set {@code isInitialEntry} to {@code true} on the line context.
+     * Release entry: pass {@code accountPeriodId}, {@code amount}, and line context with {@code isInitialEntry} false.
      */
     public AllocationJournalEntriesRecord prepareAllocationJournalEntry(
             RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord,
+            Long revenueContractVersion,
             Long openAccountPeriodId,
-            Long revenueContractVersion) {
+            ChargebeeDecimal amount,
+            Long accountPeriodId,
+            AllocationRevenueReleaseLineContext allocationRevenueReleaseLineContext) {
         if (revenueContractAllocationDetailsRecord == null) {
             throw new IllegalArgumentException("revenueContractAllocationDetailsRecord must not be null");
         }
+        if (allocationRevenueReleaseLineContext == null) {
+            throw new IllegalArgumentException("allocationRevenueReleaseLineContext must not be null");
+        }
+
+        boolean initialEntry = allocationRevenueReleaseLineContext.isInitialEntry();
+        if (!initialEntry && accountPeriodId == null) {
+            throw new IllegalArgumentException("accountPeriodId required for release journal entries");
+        }
 
         AllocationJournalEntriesRecord allocationJournalEntryRecord = new AllocationJournalEntriesRecord();
+        allocationJournalEntryRecord.setId(nextId());
         allocationJournalEntryRecord.setRevenueContractId(
                 revenueContractAllocationDetailsRecord.getRevenueContractId());
         allocationJournalEntryRecord.setRevenueContractLineId(revenueContractAllocationDetailsRecord.getId());
         allocationJournalEntryRecord.setRevenueContractVersion(revenueContractVersion);
-        allocationJournalEntryRecord.setAmount(revenueContractAllocationDetailsRecord.getCarveAmount());
+        allocationJournalEntryRecord.setAmount(
+                amount != null ? amount : revenueContractAllocationDetailsRecord.getCarveAmount());
         allocationJournalEntryRecord.setCurrency(revenueContractAllocationDetailsRecord.getAllocationCurrency());
         allocationJournalEntryRecord.setExchangeRate(revenueContractAllocationDetailsRecord.getExchangeRate());
         allocationJournalEntryRecord.setGlobalexchangeRate(
                 revenueContractAllocationDetailsRecord.getGlobalexchangeRate());
         allocationJournalEntryRecord.setExchangeRateDate(
                 revenueContractAllocationDetailsRecord.getExchangeRateDate());
-        allocationJournalEntryRecord.setInitialEntry(Boolean.TRUE);
+        allocationJournalEntryRecord.setInitialEntry(initialEntry);
         allocationJournalEntryRecord.setCreatedPeriodId(openAccountPeriodId);
         allocationJournalEntryRecord.setCreatedBy(revenueContractAllocationDetailsRecord.getCreatedBy());
         allocationJournalEntryRecord.setCreatedAt(revenueContractAllocationDetailsRecord.getCreatedAt());
         allocationJournalEntryRecord.setUpdatedBy(revenueContractAllocationDetailsRecord.getUpdatedBy());
         allocationJournalEntryRecord.setUpdatedAt(revenueContractAllocationDetailsRecord.getUpdatedAt());
+        allocationJournalEntryRecord.setAccountPeriodId(accountPeriodId);
+        allocationJournalEntryRecord.setJournalAccountPeriodId(accountPeriodId);
+        applyDerivedJournalAccountValue(
+                    allocationJournalEntryRecord,
+                    allocationRevenueReleaseLineContext.getCreditAccountSegments(),
+                    false);
+
+        if (!initialEntry) { 
+            applyDerivedJournalAccountValue(
+                    allocationJournalEntryRecord,
+                    allocationRevenueReleaseLineContext.getDebitAccountSegments(),
+                    true);
+          
+        }
+
         allocationJournalEntryRecord.setIsUpdate(PersistenceFlags.notUpdate());
         allocationJournalEntryRecord.setIsInsert(PersistenceFlags.insert());
         return allocationJournalEntryRecord;
     }
 
-    /**
-     * Prepares a release (non-initial) {@link AllocationJournalEntriesRecord} for a single accounting period.
-     */
-    public AllocationJournalEntriesRecord prepareAllocationReleaseJournalEntry(
-            AllocationRevenueReleaseLineContext allocationRevenueReleaseLineContext,
-            RevenueJournalEntriesRecord revenueJournalEntryRecord,
-            BigDecimal allocationPerPeriodRevenue,
-            Long openAccountPeriodId) {
-        RevenueContractAllocationDetailsRecord revenueContractAllocationDetailsRecord =
-                allocationRevenueReleaseLineContext.getRevenueContractAllocationDetailsRecord();
+    private void aggregateAllocationScheduleByRcId(
+            String sql,
+            MapSqlParameterSource params,
+            Map<Long, List<AllocationScheduleByRcId>> byLineId) {
+        jdbc.query(sql, params, (rs, rowNum) -> {
+            Long lineId = rs.getObject("revenueContractLineId", Long.class);
+            Boolean isInitialEntry = rs.getObject("IsInitialEntry", Boolean.class);
+            ChargebeeDecimal amount = ChargebeeDecimal.of(rs.getBigDecimal("amount"));
+            byLineId.computeIfAbsent(lineId, ignored -> new ArrayList<>())
+                    .add(new AllocationScheduleByRcId(lineId, isInitialEntry, amount));
+            return null;
+        });
+    }
 
-        AllocationJournalEntriesRecord allocationJournalEntryRecord = new AllocationJournalEntriesRecord();
-        allocationJournalEntryRecord.setRevenueContractId(revenueContractAllocationDetailsRecord.getRevenueContractId());
-        allocationJournalEntryRecord.setRevenueContractLineId(revenueContractAllocationDetailsRecord.getId());
-        allocationJournalEntryRecord.setRevenueContractVersion(
-                allocationRevenueReleaseLineContext.getRevenueContractVersion());
-        allocationJournalEntryRecord.setAccountPeriodId(revenueJournalEntryRecord.getAccountPeriodId());
-        allocationJournalEntryRecord.setJournalAccountPeriodId(revenueJournalEntryRecord.getJournalAccountPeriodId());
-        allocationJournalEntryRecord.setAmount(allocationPerPeriodRevenue);
-        allocationJournalEntryRecord.setCurrency(revenueContractAllocationDetailsRecord.getAllocationCurrency());
-        allocationJournalEntryRecord.setExchangeRate(revenueContractAllocationDetailsRecord.getExchangeRate());
-        allocationJournalEntryRecord.setGlobalexchangeRate(
-                revenueContractAllocationDetailsRecord.getGlobalexchangeRate());
-        allocationJournalEntryRecord.setExchangeRateDate(
-                revenueContractAllocationDetailsRecord.getExchangeRateDate());
-        allocationJournalEntryRecord.setInitialEntry(Boolean.FALSE);
-        allocationJournalEntryRecord.setCreatedPeriodId(openAccountPeriodId);
-        allocationJournalEntryRecord.setCreatedBy(revenueContractAllocationDetailsRecord.getCreatedBy());
-        allocationJournalEntryRecord.setCreatedAt(revenueContractAllocationDetailsRecord.getCreatedAt());
-        allocationJournalEntryRecord.setUpdatedBy(revenueContractAllocationDetailsRecord.getUpdatedBy());
-        allocationJournalEntryRecord.setUpdatedAt(revenueContractAllocationDetailsRecord.getUpdatedAt());
-        applyDerivedJournalAccountValue(
-                allocationJournalEntryRecord, allocationRevenueReleaseLineContext.getDebitAccountSegments(), true);
-        applyDerivedJournalAccountValue(
-                allocationJournalEntryRecord, allocationRevenueReleaseLineContext.getCreditAccountSegments(), false);
-        allocationJournalEntryRecord.setIsUpdate(PersistenceFlags.notUpdate());
-        allocationJournalEntryRecord.setIsInsert(PersistenceFlags.insert());
-        return allocationJournalEntryRecord;
+    private static Map<Long, List<AllocationScheduleByRcId>> immutableScheduleByLineId(
+            Map<Long, List<AllocationScheduleByRcId>> byLineId) {
+        byLineId.replaceAll((lineId, periods) -> List.copyOf(periods));
+        return Map.copyOf(byLineId);
     }
 
     private static void applyDerivedJournalAccountValue(
@@ -234,11 +283,11 @@ public class AllocationJournalEntriesService {
                 .addValue("journalAccountPeriodId", record.getJournalAccountPeriodId())
                 .addValue("debitAccountName", record.getDebitAccountName())
                 .addValue("creditAccountName", record.getCreditAccountName())
-                .addValue("amount", record.getAmount())
+                .addValue("amount", record.getAmount() == null ? null : record.getAmount().toBigDecimal())
                 .addValue("currency", record.getCurrency())
                 .addValue("functionalCurrency", record.getFunctionalCurrency())
-                .addValue("exchangeRate", record.getExchangeRate())
-                .addValue("globalexchangeRate", record.getGlobalexchangeRate())
+                .addValue("exchangeRate", record.getExchangeRate() == null ? null : record.getExchangeRate().toBigDecimal())
+                .addValue("globalexchangeRate", record.getGlobalexchangeRate() == null ? null : record.getGlobalexchangeRate().toBigDecimal())
                 .addValue("exchangeRateDate", record.getExchangeRateDate())
                 .addValue("debitAccount1", record.getDebitAccount1())
                 .addValue("debitAccount2", record.getDebitAccount2())

@@ -1,7 +1,7 @@
 package com.revrec.engine.common.service.JournalEntries.AllocationJournalEntries;
 
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import com.revrec.engine.common.persistence.PersistenceFlags;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -28,15 +28,15 @@ public interface AllocationJournalEntries extends PersistenceFlags {
 
     String getCreditAccountName();
 
-    BigDecimal getAmount();
+    ChargebeeDecimal getAmount();
 
     String getCurrency();
 
     String getFunctionalCurrency();
 
-    BigDecimal getExchangeRate();
+    ChargebeeDecimal getExchangeRate();
 
-    BigDecimal getGlobalexchangeRate();
+    ChargebeeDecimal getGlobalexchangeRate();
 
     LocalDate getExchangeRateDate();
 

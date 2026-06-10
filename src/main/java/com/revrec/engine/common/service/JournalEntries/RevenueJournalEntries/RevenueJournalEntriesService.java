@@ -1,10 +1,10 @@
 package com.revrec.engine.common.service.JournalEntries.RevenueJournalEntries;
 
+import com.revrec.engine.common.math.ChargebeeDecimal;
 import com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries.RevenueJournalEntriesPerPeriod;
 import com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries.RevenueJournalEntriesRecord;
 import com.revrec.engine.domain.service.JournalEntries.RevenueJournalEntries.RevenueJournalEntriesRecordMapper;
 import com.revrec.engine.integration.nosql.NoSqlRecordServer;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -188,6 +188,14 @@ public class RevenueJournalEntriesService {
         return immutableByLineId(byLineId);
     }
 
+    /**
+     * Full revenue journal rows for retrospective release, grouped by line id (single batch load).
+     */
+    public Map<Long, List<RevenueJournalEntriesRecord>> getRetrospectiveRevenueJournalEntryRecordsByLine(
+            List<Long> revenueContractLineIds) {
+        return groupByRevenueContractLineId(findByRevenueContractLineIds(revenueContractLineIds));
+    }
+
     private static final String PROSPECTIVE_BY_CONTRACT_AND_PERIOD =
             """
             SELECT
@@ -238,7 +246,7 @@ public class RevenueJournalEntriesService {
         jdbc.query(sql, params, (rs, rowNum) -> {
             Long lineId = rs.getObject("revenueContractLineId", Long.class);
             Long periodId = rs.getObject("periodId", Long.class);
-            BigDecimal amount = rs.getBigDecimal("amount");
+            ChargebeeDecimal amount = ChargebeeDecimal.of(rs.getBigDecimal("amount"));
             byLineId.computeIfAbsent(lineId, ignored -> new ArrayList<>())
                     .add(new RevenueJournalEntriesPerPeriod(periodId, amount));
             return null;
